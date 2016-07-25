@@ -1,0 +1,16 @@
+﻿<?xml version="1.0"?>
+<package xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <id>JRPC.Service</id>
+    <version>0.0.0</version>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A JSON-RPC server library.</description>
+    <authors>IDEV</authors>
+    <dependencies>
+      <dependency id="JRPC.Core" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="bin\Release\JRPC.Service.dll" target="lib\" />
+  </files>
+</package>

@@ -1,0 +1,47 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "misc", "misc", "{72022C6C-B497-41AD-99F6-BA650491C9CE}"
+	ProjectSection(SolutionItems) = preProject
+		build.cake = build.cake
+		build.ps1 = build.ps1
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JRPC.Core", "src\JRPC.Core\JRPC.Core.csproj", "{8CA4371C-39C7-429F-8839-3A52A3FAC31C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JRPC.Client", "src\JRPC.Client\JRPC.Client.csproj", "{79BF4951-51BA-43E0-9F9B-0CA43DDA2E9F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JRPC.Service", "src\JRPC.Service\JRPC.Service.csproj", "{09E4A5F3-BEF1-44DD-8083-F36E5FD86D15}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JRPC.Regestry.Ninject", "src\JRPC.Regestry.Ninject\JRPC.Regestry.Ninject.csproj", "{E70B8D7E-DC67-4B8E-B28B-9C505BE663B6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8CA4371C-39C7-429F-8839-3A52A3FAC31C}.Debug|x64.ActiveCfg = Debug|x64
+		{8CA4371C-39C7-429F-8839-3A52A3FAC31C}.Debug|x64.Build.0 = Debug|x64
+		{8CA4371C-39C7-429F-8839-3A52A3FAC31C}.Release|x64.ActiveCfg = Release|x64
+		{8CA4371C-39C7-429F-8839-3A52A3FAC31C}.Release|x64.Build.0 = Release|x64
+		{79BF4951-51BA-43E0-9F9B-0CA43DDA2E9F}.Debug|x64.ActiveCfg = Debug|x64
+		{79BF4951-51BA-43E0-9F9B-0CA43DDA2E9F}.Debug|x64.Build.0 = Debug|x64
+		{79BF4951-51BA-43E0-9F9B-0CA43DDA2E9F}.Release|x64.ActiveCfg = Release|x64
+		{79BF4951-51BA-43E0-9F9B-0CA43DDA2E9F}.Release|x64.Build.0 = Release|x64
+		{09E4A5F3-BEF1-44DD-8083-F36E5FD86D15}.Debug|x64.ActiveCfg = Debug|x64
+		{09E4A5F3-BEF1-44DD-8083-F36E5FD86D15}.Debug|x64.Build.0 = Debug|x64
+		{09E4A5F3-BEF1-44DD-8083-F36E5FD86D15}.Release|x64.ActiveCfg = Release|x64
+		{09E4A5F3-BEF1-44DD-8083-F36E5FD86D15}.Release|x64.Build.0 = Release|x64
+		{E70B8D7E-DC67-4B8E-B28B-9C505BE663B6}.Debug|x64.ActiveCfg = Debug|x64
+		{E70B8D7E-DC67-4B8E-B28B-9C505BE663B6}.Debug|x64.Build.0 = Debug|x64
+		{E70B8D7E-DC67-4B8E-B28B-9C505BE663B6}.Release|x64.ActiveCfg = Release|x64
+		{E70B8D7E-DC67-4B8E-B28B-9C505BE663B6}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
