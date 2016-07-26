@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "misc", "misc", "{72022C6C-B497-41AD-99F6-BA650491C9CE}"
 	ProjectSection(SolutionItems) = preProject
@@ -16,7 +16,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JRPC.Client", "src\JRPC.Cli
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JRPC.Service", "src\JRPC.Service\JRPC.Service.csproj", "{09E4A5F3-BEF1-44DD-8083-F36E5FD86D15}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JRPC.Regestry.Ninject", "src\JRPC.Regestry.Ninject\JRPC.Regestry.Ninject.csproj", "{E70B8D7E-DC67-4B8E-B28B-9C505BE663B6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JRPC.Registry.Ninject", "src\JRPC.Registry.Ninject\JRPC.Registry.Ninject.csproj", "{E70B8D7E-DC67-4B8E-B28B-9C505BE663B6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -13,12 +13,13 @@ var version = Argument("version", "1.0.0");
 
 var output = Directory(".");
 var outputBinaries = output + Directory("binaries");
-var outputBinariesNet452 = outputBinaries + Directory("net452");
+var outputBinariesNet451 = outputBinaries + Directory("net451");
 var outputBinariesNetstandard = outputBinaries + Directory("netstandard1.5");
 var outputPackages = output + Directory("packages");
 var outputNuGet = output + Directory("nuget");
+var outputPack = output + Directory("pack");
 
-var buildDir = Directory("./src/Example/bin") + Directory(configuration);
+//var buildDir = Directory("./src/Example/bin") + Directory(configuration);
 
 //////////////////////////////////////////////////////////////////////
 // TASKS
@@ -27,7 +28,7 @@ var buildDir = Directory("./src/Example/bin") + Directory(configuration);
 Task("Clean")
     .Does(() =>
 {
-    CleanDirectory(buildDir);
+    ///CleanDirectory(buildDir);
 });
 
 Task("Restore-NuGet-Packages")
@@ -64,18 +65,30 @@ Task("Run-Unit-Tests")
         });
 });
 
-Task("Package-NuGet")
+Task("Package")
   .Description("Generates NuGet packages for each project that contains a nuspec")
   .IsDependentOn("Build")
   .Does(() =>
 {
-  var projects = GetFiles("./src/**/*.csproj");
+  var projects = GetFiles("./src/**/*.nuspec");
   foreach(var project in projects)
   {
-		NuGetPack (project.ChangeExtension("nuspec").ToString(), new NuGetPackSettings
+		NuGetPack (project.ToString(), new NuGetPackSettings
         {
             BasePath = project.GetDirectory().ToString(),
             OutputDirectory = outputNuGet,
+			Version = version
+        });
+  };
+
+  var packs = GetFiles("./src/**/*.pack");
+  foreach(var project in packs)
+  {
+
+        NuGetPack(project.ToString(), new NuGetPackSettings
+        {
+            BasePath = project.GetDirectory().ToString(),
+            OutputDirectory = outputPack,
 			Version = version
         });
   }
@@ -86,7 +99,7 @@ Task("Package-NuGet")
 //////////////////////////////////////////////////////////////////////
 
 Task("Default")
-    .IsDependentOn("Package-NuGet");
+    .IsDependentOn("Package");
 
 //////////////////////////////////////////////////////////////////////
 // EXECUTION

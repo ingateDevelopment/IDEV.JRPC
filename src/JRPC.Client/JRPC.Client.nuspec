@@ -7,10 +7,10 @@
     <description>A JSON-RPC client library.</description>
     <authors>IDEV</authors>
     <dependencies>
-      <dependency id="JRPC.Core" />
+      <dependency id="JRPC.Core" version="1.0" />
     </dependencies>
   </metadata>
   <files>
-    <file src="bin\Release\JRPC.Client.dll" target="lib\" />
+    <file src="bin\x64\Release\JRPC.Client.dll" target="lib\net451" />
   </files>
 </package>

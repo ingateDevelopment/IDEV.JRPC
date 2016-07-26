@@ -9,7 +9,7 @@ using Consul;
 using Microsoft.Owin.Hosting;
 using NLog;
 using Owin;
-using JRPC.Service.Regestry;
+using JRPC.Service.Registry;
 
 namespace JRPC.Service {
 
@@ -18,20 +18,20 @@ namespace JRPC.Service {
         private const int DEFAULT_END_PORT = 60000;
         private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
-        private readonly IModulesRegestry _modulesRegestry;
+        private readonly IModulesRegistry _modulesRegistry;
         private readonly IConsulClient _consulClient;
         private readonly List<string> _registeredConsulIds = new List<string>();
         private IDisposable _server;
 
-        public JRpcService(IModulesRegestry modulesRegestry, IConsulClient consulClient) {
-            _modulesRegestry = modulesRegestry;
+        public JRpcService(IModulesRegistry modulesRegistry, IConsulClient consulClient) {
+            _modulesRegistry = modulesRegistry;
             _consulClient = consulClient;
         }
 
         public bool Start() {
             var address = GetAddress();
 
-            var services = _modulesRegestry.GetAllServices();
+            var services = _modulesRegistry.GetAllServices();
             int? port = GetPort();
             List<int> availiablePorts = GetAvailiablePorts();
 

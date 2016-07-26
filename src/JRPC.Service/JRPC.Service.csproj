@@ -93,8 +93,8 @@
     <Compile Include="JRpcService.cs" />
     <Compile Include="MethodInvoker.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Regestry\DefaultModulesRegestry.cs" />
-    <Compile Include="Regestry\IModulesRegestry.cs" />
+    <Compile Include="Registry\DefaultModulesRegistry.cs" />
+    <Compile Include="Registry\IModulesRegistry.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="JRPC.Service.nuspec" />

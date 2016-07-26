@@ -1,18 +1,15 @@
 ﻿using Ninject;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using JRPC.Service.Regestry;
+using JRPC.Service.Registry;
 using JRPC.Service;
 
-namespace JRPC.Regestry.Ninject {
-    public class NinjectModulesRegestry : IModulesRegestry {
+namespace JRPC.Registry.Ninject {
+    public class NinjectModulesRegistry : IModulesRegistry {
 
         private readonly IKernel _kernel;
 
-        public NinjectModulesRegestry(IKernel kernel) {
+        public NinjectModulesRegistry(IKernel kernel) {
             _kernel = kernel;
         }
 
