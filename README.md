@@ -96,7 +96,7 @@ svc.Stop();
 #### Client example:
 
 ```csharp
-var client = new JRpcClient();
+var client = new JRpcClient("http://127.0.0.1:12345");
 var proxy = client.GetProxy<ISomeService>("SomeService");
 Console.WriteLine(proxy.GetString());   // Output is "Result from service"
 ```
