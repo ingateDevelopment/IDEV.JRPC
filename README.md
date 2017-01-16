@@ -101,6 +101,8 @@ var proxy = client.GetProxy<ISomeService>("SomeService");
 Console.WriteLine(proxy.GetString());   // Output is "Result from service"
 ```
 
+See [full example solution](https://github.com/ingateDevelopment/IDEV.JRPC.Example)
+
 ## License ##
 
 IDEV.JRPC is licensed under [The MIT License](https://opensource.org/licenses/MIT).
