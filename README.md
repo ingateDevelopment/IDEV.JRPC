@@ -1,14 +1,16 @@
 ﻿# IDEV.JRPC #
 
-*IDEV.JRPC* is JSON-RPC library based on [JSON-RPC.NET](https://github.com/Astn/JSON-RPC.NET). It's provide server and client parts.
+**IDEV.JRPC** is JSON-RPC library based on [JSON-RPC.NET](https://github.com/Astn/JSON-RPC.NET). It's provide server and client parts.
 
 ## Requirements
 
 * dotnet 4.5.1
-* Nlog 3.1.0
-* ConsulClient 0.7.2
-* Ninject 3.2.2 (optional)
-* Microsoft.Owin.Host.HttpListener 3.0.1
+* Nlog >= 3.1.0
+* ConsulClient >= 0.7.2
+* Ninject >= 3.2.2 (optional: only for **JRPC.Registry.Ninject**)
+* Microsoft.Owin.Host.HttpListener >= 3.0.1
+
+Also [Consul](https://www.consul.io) agent needed to work properly.
 
 ## Install ##
 
@@ -89,6 +91,14 @@ var svc = kernel.Get<JRpcService>();
 svc.Start();
 Console.ReadLine();
 svc.Stop();
+```
+
+#### Client example:
+
+```csharp
+var client = new JRpcClient();
+var proxy = client.GetProxy<ISomeService>("SomeService");
+Console.WriteLine(proxy.GetString());   // Output is "Result from service"
 ```
 
 ## License ##
