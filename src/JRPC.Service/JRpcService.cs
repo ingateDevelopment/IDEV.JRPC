@@ -30,7 +30,10 @@ namespace JRPC.Service {
 
         public bool Start() {
             var address = GetAddress();
+            return Start(address);
+        }
 
+        public bool Start(string address) {
             var services = _modulesRegistry.GetAllServices();
             int? port = GetPort();
             List<int> availiablePorts = GetAvailiablePorts();
@@ -149,7 +152,7 @@ namespace JRPC.Service {
         private static string GetAddress() {
             var configValue = ConfigurationManager.AppSettings.Get("ServiceAddress");
             //if (!string.IsNullOrWhiteSpace(configValue)) {
-                return configValue;
+            return configValue;
             //} 
         }
     }

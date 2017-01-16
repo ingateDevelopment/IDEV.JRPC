@@ -6,6 +6,10 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A JSON-RPC core types library.</description>
     <authors>IDEV</authors>
+    <licenseUrl>https://opensource.org/licenses/MIT</licenseUrl>
+    <dependencies>
+      <dependency id="Newtonsoft.Json" version="9.0.1" />
+    </dependencies>
   </metadata>
   <files>
     <file src="bin\x64\Release\JRPC.Core.dll" target="lib\net451" />

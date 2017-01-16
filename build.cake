@@ -5,7 +5,7 @@
 
 var target = Argument("target", "Default");
 var configuration = Argument("configuration", "Release");
-var version = Argument("version", "1.0.0");
+var version = Argument("version", "1.1.0");
 
 //////////////////////////////////////////////////////////////////////
 // PREPARATION
@@ -80,18 +80,6 @@ Task("Package")
 			Version = version
         });
   };
-
-  var packs = GetFiles("./src/**/*.pack");
-  foreach(var project in packs)
-  {
-
-        NuGetPack(project.ToString(), new NuGetPackSettings
-        {
-            BasePath = project.GetDirectory().ToString(),
-            OutputDirectory = outputPack,
-			Version = version
-        });
-  }
 });
 
 //////////////////////////////////////////////////////////////////////

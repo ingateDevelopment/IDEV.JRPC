@@ -1,16 +1,18 @@
 ﻿<?xml version="1.0"?>
 <package xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
-    <id>JRPC.Regestry.Ninject</id>
+    <id>JRPC.Registry.Ninject</id>
     <version>0.0.0</version>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A JSON-RPC server library.</description>
     <authors>IDEV</authors>
+    <licenseUrl>https://opensource.org/licenses/MIT</licenseUrl>
     <dependencies>
-      <dependency id="JRPC.Service" version="1.0"/>
+      <dependency id="JRPC.Service" version="1.1.0" />
+      <dependency id="Ninject" version="3.2.2.0" />
     </dependencies>
   </metadata>
   <files>
-    <file src="bin\x64\Release\JRPC.Regestry.Ninject.dll" target="lib\net451" />
+    <file src="bin\x64\Release\JRPC.Registry.Ninject.dll" target="lib\net451" />
   </files>
 </package>
