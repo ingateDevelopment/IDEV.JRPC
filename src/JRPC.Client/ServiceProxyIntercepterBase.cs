@@ -6,12 +6,9 @@ using System.ServiceModel.Channels;
 using System.ServiceModel.Description;
 using System.Threading;
 using Castle.DynamicProxy;
-using NLog;
 
 namespace JRPC.Client {
     internal abstract class ServiceProxyIntercepterBase<TChannel> : IInterceptor where TChannel : class {
-        private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
-
         private const int RETRY_DELAY = 1;
 
         protected ChannelFactory<TChannel> _factory;

@@ -1,13 +1,9 @@
 ﻿using System.ServiceModel;
 using System.ServiceModel.Channels;
 using Castle.DynamicProxy;
-using NLog;
-
 
 namespace JRPC.Client {
     internal static class ServiceFactory {
-        private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
-
         private static readonly ProxyGenerator _generator = new ProxyGenerator(new PersistentProxyBuilder());
 
         /// <summary>
