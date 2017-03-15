@@ -1,8 +1,8 @@
-﻿# IDEV.JRPC #
+# IDEV.JRPC #
 
 **IDEV.JRPC** is JSON-RPC library based on [JSON-RPC.NET](https://github.com/Astn/JSON-RPC.NET). It's provide server and client parts.
 
-## Requirements
+## Requirements ##
 
 * dotnet 4.5.1
 * Nlog >= 3.1.0
