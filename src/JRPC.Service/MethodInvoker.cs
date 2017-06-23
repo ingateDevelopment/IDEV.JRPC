@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using JRPC.Core;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -48,6 +50,11 @@ namespace JRPC.Service {
             if (value != null) {
                 return value.ToObject<T>(jsonSerializer);
             }
+
+            if (!parameterInfo.IsOptional) {
+                throw new JRpcException($"Not found expectedparams with name {parameterInfo.Name}", Environment.StackTrace);
+            }
+
             if (parameterInfo.HasDefaultValue) {
                 return (T)parameterInfo.DefaultValue;
             }

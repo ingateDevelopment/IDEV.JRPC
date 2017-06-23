@@ -5,24 +5,37 @@ namespace JRPC.Core {
     [Serializable]
     [JsonObject(MemberSerialization.OptIn)]
     public class JRpcException : ApplicationException {
-        public JRpcException(int code, string message, object data) {
-            this.code = code;
+
+        private readonly string _stacktrace;
+
+        [JsonConstructor]
+        public JRpcException(string message, string stackTrace) {
             this.message = message;
-            this.data = data;
+            _stacktrace = stackTrace;
         }
 
-        [JsonProperty]
-        public int code { get; set; }
+        public JRpcException(Exception exception, string moduleInfo, string method) {
+            var remoteException = exception as JRpcException;
+            message = remoteException != null ? remoteException.message : exception.GetType().Name + ": " + exception.Message;
+            var stackTrace = remoteException != null ? remoteException.stacktrace : exception.StackTrace;
+            _stacktrace = stackTrace + $"\r\n\r\n<---- handled by {moduleInfo}, {method}";
+        }
+
+        public JRpcException(string message, string moduleInfo, string method) {
+            this.message = message;
+            _stacktrace = $"\r\n\r\n<---- handled by {moduleInfo}, {method}";
+        }
+
 
         [JsonProperty]
         public string message { get; set; }
 
+
         [JsonProperty]
-        public object data { get; set; }
+        public string stacktrace => _stacktrace + StackTrace;
 
         public override string ToString() {
-            string dataStr = data != null ? JsonConvert.SerializeObject(data) : string.Empty;
-            return string.Format("{0}, RpcExceptionMessage = {1}, RpcExceptionData = {2}", base.ToString(), message, dataStr);
+            return $"{base.ToString()}, RpcExceptionMessage = {message}, RpcExceptionData = {stacktrace}";
         }
     }
 }
