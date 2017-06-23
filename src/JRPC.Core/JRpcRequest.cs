@@ -1,16 +1,9 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace JRPC.Core {
     [JsonObject(MemberSerialization.OptIn)]
     public class JRpcRequest {
-        private string _jsonrpc = "2.0";
-
         [JsonProperty("method")]
         public string Method { get; set; }
 
@@ -21,9 +14,6 @@ namespace JRPC.Core {
         public object Id { get; set; }
 
         [JsonProperty("jsonrpc")]
-        public string Jsonrpc {
-            get { return _jsonrpc; }
-            set { _jsonrpc = value; }
-        }
+        public string Jsonrpc { get; set; } = "2.0";
     }
 }

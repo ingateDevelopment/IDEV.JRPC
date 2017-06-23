@@ -20,7 +20,7 @@ namespace JRPC.Client {
 
         public JRpcClient(string endpoint)
             : this(
-                endpoint, new JsonSerializerSettings() {ContractResolver = new CamelCasePropertyNamesContractResolver()}
+                endpoint, new JsonSerializerSettings() {ContractResolver = new DefaultContractResolver()}
                 ) {}
 
         public JRpcClient(string endpoint, JsonSerializerSettings jsonSerializerSettings) 
@@ -82,7 +82,7 @@ namespace JRPC.Client {
             var jsonresponse = JsonConvert.DeserializeObject<JRpcResponse>(content, _jsonSerializerSettings);
 
             if (jsonresponse.Error != null) {
-                throw new Exception(jsonresponse.Error.ToString());
+                throw jsonresponse.Error;
             }
 
             return JsonConvert.SerializeObject(jsonresponse.Result, _jsonSerializerSettings);
