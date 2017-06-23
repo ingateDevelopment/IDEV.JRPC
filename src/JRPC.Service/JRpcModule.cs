@@ -15,17 +15,19 @@ namespace JRPC.Service {
     public abstract class JRpcModule {
         private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
         private readonly Dictionary<string, MethodInvoker> _handlers = new Dictionary<string, MethodInvoker>();
+
         private readonly JsonSerializerSettings _jsonSerializerSettings;
 
-        public virtual string ModuleName { get { return GetType().Name; } }
+        public virtual string ModuleName => GetType().Name;
+
+        public string BindingUrl { get; set; }
 
         private readonly DateTime _buildTime;
 
         public Func<IOwinContext, Task> PrintInfo {
-            get {
-                return (context) => Task.FromResult(string.Format("Module [{0}] built at {1}", ModuleName, _buildTime.ToString("yyyy-MM-dd HH:mm:ss")));
-            }
+            get { return (context) => Task.FromResult(ModuleInfo); }
         }
+        public string ModuleInfo => $"Module [{ModuleName}] built at {_buildTime.ToString("yyyy-MM-dd HH:mm:ss")} bindingUrl at {BindingUrl}";
 
         public Func<IOwinContext, Task> ProcessRequest {
             get {
@@ -39,11 +41,12 @@ namespace JRPC.Service {
 
                     MethodInvoker handle;
 
-                    var haveDelegate = _handlers.TryGetValue(request.Method.ToLower(), out handle);
+                    var methodName = request.Method.ToLower();
+                    var haveDelegate = _handlers.TryGetValue(methodName, out handle);
                     if (!haveDelegate || handle == null) {
                         var response = new JRpcResponse {
                             Result = null,
-                            Error = new JRpcException(-32601, "Method not found", "The method does not exist / is not available."),
+                            Error = new JRpcException("Method not found. The method does not exist / is not available.", ModuleInfo, methodName),
                             Id = request.Id
                         };
                         return SerializeResponse(context.Response, response);
@@ -57,7 +60,7 @@ namespace JRPC.Service {
                     } catch (Exception ex) {
                         var response = new JRpcResponse {
                             Result = null,
-                            Error = new JRpcException(-32602, "Method execution exception", ex.ToString()),
+                            Error = new JRpcException(ex, ModuleInfo, methodName),
                             Id = request.Id
                         };
                         return SerializeResponse(context.Response, response);
@@ -68,15 +71,17 @@ namespace JRPC.Service {
 
         protected virtual IList<JsonConverter> JsonConverters { get { return new JsonConverter[0]; } }
 
-        protected JRpcModule() {
-            _jsonSerializerSettings = new JsonSerializerSettings {
+        protected virtual JsonSerializerSettings GetSerializerSettings() {
+            return new JsonSerializerSettings {
                 NullValueHandling = NullValueHandling.Ignore,
                 Converters = JsonConverters,
-                ContractResolver = new CamelCasePropertyNamesContractResolver()
+                ContractResolver = new DefaultContractResolver()
             };
+        }
 
+        protected JRpcModule() {
+            _jsonSerializerSettings = GetSerializerSettings();
             BuildService();
-
             _buildTime = GetLinkerTime(GetType().Assembly);
         }
 
@@ -88,15 +93,43 @@ namespace JRPC.Service {
 
         private void BuildService() {
             var type = GetType();
-            var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance).OrderByDescending(t => t.DeclaringType == type);
+            var interfaces = type.GetInterfaces();
+            
             var serialiser = JsonSerializer.Create(_jsonSerializerSettings);
-            foreach (var method in methods) {
-                var attribute = method.GetCustomAttributes(typeof(JRpcMethodAttribute), false).SingleOrDefault() as JRpcMethodAttribute;
+
+            var duplicateMethod = methods.GroupBy(t => Tuple.Create(t.Name, t.DeclaringType)).FirstOrDefault(t => t.Count() > 1);
+            if (duplicateMethod != null) {
+                var methodInfo = duplicateMethod.ToList().First();
+                throw new JRpcException($"method with name {methodInfo.Name} already exist in type {type}", ModuleInfo, methodInfo.Name);
+            }
+            var methodInfos = interfaces.SelectMany(
+                i => i.GetMethods(BindingFlags.Public | BindingFlags.Instance)).ToList()
+                .GroupBy(t => t.Name.ToLower());
+
+            var duplicateInterfaceMethod = methodInfos.FirstOrDefault(t => t.Count() > 1);
+            if (duplicateInterfaceMethod != null) {
+                var methodInfo = duplicateInterfaceMethod.ToList().First();
+                throw new JRpcException($"method with name {methodInfo.Name} already  exist in interfaces {type}", ModuleInfo, methodInfo.Name);
+            }
+
+
+            Dictionary<string, MethodInfo> interfaceMethodsMap = methodInfos
+                .ToDictionary(t => t.Key, t => t.OrderByDescending(s => s.DeclaringType == type).FirstOrDefault());
+
+            foreach (var method in methods.OrderByDescending(t => t.DeclaringType == type)) {
+                var attribute = method.GetCustomAttributes(typeof (JRpcMethodAttribute), false).SingleOrDefault() as JRpcMethodAttribute;
                 var methodName = attribute != null && !string.IsNullOrWhiteSpace(attribute.MethodName)
                     ? attribute.MethodName.ToLower()
                     : method.Name.ToLower();
 
-                _handlers.Add(methodName, new MethodInvoker(method, serialiser));
+                if (_handlers.ContainsKey(methodName) && method.DeclaringType != type) {
+                    continue;
+                }
+                MethodInfo interfaceMethodInfo = null;
+                interfaceMethodsMap.TryGetValue(methodName, out interfaceMethodInfo);
+                var methodInfo = interfaceMethodInfo ?? method;
+                _handlers.Add(methodName, new MethodInvoker(methodInfo, serialiser));
             }
         }
 
