@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Reflection;
 using Consul;
 using Microsoft.Owin.Hosting;
@@ -14,8 +15,8 @@ using JRPC.Service.Registry;
 namespace JRPC.Service {
 
     public sealed class JRpcService {
-        private const int DEFAULT_START_PORT = 5678;
-        private const int DEFAULT_END_PORT = 60000;
+        private const int DefaultStartPort = 5678;
+        private const int DefaultEndPort = 60000;
         private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
         private readonly IModulesRegistry _modulesRegistry;
@@ -49,7 +50,7 @@ namespace JRPC.Service {
                     return false;
                 }
             } else {
-                foreach (var p in GetAvailiablePorts()) {
+                foreach (var p in availiablePorts) {
                     if (StartServices(services, address, p)) {
                         port = p;
                         break;
@@ -61,12 +62,14 @@ namespace JRPC.Service {
                 }
             }
 
-            string url = "http://" + address + ":" + port + "/";
+            string url = $"http://{address}:{port}/";
             _logger.Info("Starting RPC service on {0}...", url);
 
 
             foreach (var service in services.Keys) {
                 _registeredConsulIds.Add(RegisterInConsul(service, url, address, port.Value));
+                services[service].BindingUrl = $"{url}{service}";
+
             }
             _logger.Info("Зарегистрировали в консуле {0} сервисов: {1}", _registeredConsulIds.Count, string.Join(", ", _registeredConsulIds));
             return true;
@@ -95,7 +98,7 @@ namespace JRPC.Service {
                 return true;
             } catch (TargetInvocationException e) {
                 if (e.InnerException is HttpListenerException) {
-                    _logger.Warn(string.Format("Unable start service on port {0}", port), e);
+                    _logger.Warn($"Unable start service on port {port}", e);
                 } else {
                     throw;
                 }
@@ -118,7 +121,7 @@ namespace JRPC.Service {
 
             List<int> usedPorts = tcpEndPoints.Select(p => p.Port).ToList();
 
-            var unusedPorts = Enumerable.Range(DEFAULT_START_PORT, DEFAULT_END_PORT - DEFAULT_START_PORT)
+            var unusedPorts = Enumerable.Range(DefaultStartPort, DefaultEndPort - DefaultStartPort)
                 .Where(port => !usedPorts.Contains(port)).ToArray();
             return unusedPorts.OrderBy(t => Guid.NewGuid()).ToList();
         }
@@ -132,7 +135,7 @@ namespace JRPC.Service {
         }
 
         private string RegisterInConsul(string moduleName, string baseUrl, string address, int port) {
-            var consulServiceId = String.Format("{0}:{1}-{2}", address, port, moduleName);
+            var consulServiceId = $"{address}:{port}-{moduleName}";
             _consulClient.Agent.ServiceRegister(new AgentServiceRegistration {
                 Name = moduleName,
                 Address = address,
@@ -143,6 +146,7 @@ namespace JRPC.Service {
                     HTTP = baseUrl + moduleName,
                     Interval = TimeSpan.FromSeconds(10),
                     Timeout = TimeSpan.FromSeconds(10),
+                    DeregisterCriticalServiceAfter = TimeSpan.FromHours(1),
                 }
             });
 
@@ -151,9 +155,17 @@ namespace JRPC.Service {
 
         private static string GetAddress() {
             var configValue = ConfigurationManager.AppSettings.Get("ServiceAddress");
-            //if (!string.IsNullOrWhiteSpace(configValue)) {
-            return configValue;
-            //} 
+            if (!string.IsNullOrWhiteSpace(configValue)) {
+                return configValue;
+            }
+            return GetAdressFromDns();
+        }
+
+
+        private static string GetAdressFromDns() {
+            return Array.FindLast(
+                Dns.GetHostEntry(string.Empty).AddressList,
+                a => a.AddressFamily == AddressFamily.InterNetwork).ToString();
         }
     }
 }

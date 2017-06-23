@@ -33,12 +33,24 @@ namespace JRPC.Client {
             }
             var parametersStr = SerializeParams(dictionary);
             var invoker = _invokers.GetOrAdd(invocation.Method, GetInvoker);
-            var result = invoker.Item1(_client, _taskName, invocation.Method.Name, parametersStr,
-                _jsonSerializerSettings);
-            var needReturnTask = invoker.Item2;
-            invocation.ReturnValue = result;
-            if (needReturnTask) {} else {
-                invocation.ReturnValue = (object) ((dynamic) result).Result;
+            try {
+                var result = invoker.Item1(_client, _taskName, invocation.Method.Name, parametersStr,
+                    _jsonSerializerSettings);
+
+                var needReturnTask = invoker.Item2;
+                invocation.ReturnValue = result;
+                if (needReturnTask) {
+                }
+                else {
+                    invocation.ReturnValue = (object) ((dynamic) result).Result;
+                }
+            }
+            catch (AggregateException e) {
+                Exception ex = e;
+                while (ex is AggregateException) {
+                    ex = (ex as AggregateException).InnerException;
+                }
+                throw ex;
             }
         }
 
