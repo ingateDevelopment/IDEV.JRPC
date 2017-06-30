@@ -1,22 +1,31 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
+using JRPC.Core.Security;
 using Newtonsoft.Json;
 
 namespace JRPC.Client {
+
     internal static class JRpcStaticClientFactory {
+
         private static readonly ConcurrentDictionary<Tuple<string, string, Type>, object> _proxiesCache = new ConcurrentDictionary<Tuple<string, string, Type>, object>();
 
         //NOTE: НЕ УДАЛЯТЬ, т.к. используется рефлексией
-        private static object Invoke<TResult>(IJRpcClient client, string taskName, string methodName, string parametersStr, JsonSerializerSettings jsonSerializerSettings) {
-            return client.Call(taskName, methodName, parametersStr)
+        private static object Invoke<TResult>(
+            IJRpcClient client,
+            string taskName,
+            string methodName,
+            string parametersStr,
+            JsonSerializerSettings jsonSerializerSettings,
+            AbstractCredentials credentials) {
+            return client.Call(taskName, methodName, parametersStr, credentials)
                 .AfterSuccess(r =>
                     JsonConvert.DeserializeObject<TResult>(r, jsonSerializerSettings));
         }
 
-        public static T Get<T>(IJRpcClient client, string taskName, string cacheKey, JsonSerializerSettings jsonSerializerSettings) where T : class {
-            return (T)_proxiesCache.GetOrAdd(Tuple.Create(cacheKey, taskName, typeof(T)),
-                k => ServiceFactory.CreateWithInterceptor<T>(new JRpcIntercepter(client, k.Item2, jsonSerializerSettings)));
+        public static T Get<T>(IJRpcClient client, string taskName, string cacheKey, JsonSerializerSettings jsonSerializerSettings, AbstractCredentials credentials) where T : class {
+            return (T) _proxiesCache.GetOrAdd(Tuple.Create(cacheKey, taskName, typeof(T)),
+                k => ServiceFactory.CreateWithInterceptor<T>(new JRpcIntercepter(client, k.Item2, jsonSerializerSettings, credentials)));
         }
 
         /// <summary>
@@ -39,5 +48,7 @@ namespace JRPC.Client {
             }, TaskContinuationOptions.ExecuteSynchronously);
             return tcs.Task;
         }
+
     }
+
 }
