@@ -21,12 +21,12 @@ namespace JRPC.Client {
         private readonly JsonSerializerSettings _jsonSerializerSettings;
         private readonly string _taskName;
 
-        private readonly AbstractCredentials _credentials;
+        private readonly IAbstractCredentials _credentials;
 
         public JRpcIntercepter(IJRpcClient client, string taskName, JsonSerializerSettings jsonSerializerSettings) : this(client, taskName, jsonSerializerSettings, null) {
         }
 
-        public JRpcIntercepter(IJRpcClient client, string taskName, JsonSerializerSettings jsonSerializerSettings, AbstractCredentials credentials) {
+        public JRpcIntercepter(IJRpcClient client, string taskName, JsonSerializerSettings jsonSerializerSettings, IAbstractCredentials credentials) {
             _client = client;
             _taskName = taskName;
             _jsonSerializerSettings = jsonSerializerSettings;
@@ -84,7 +84,7 @@ namespace JRPC.Client {
 
         private delegate object Invoker(
             IJRpcClient client, string taskName, string methodName, string parametersStr,
-            JsonSerializerSettings jsonSerializerSettings, AbstractCredentials credentials);
+            JsonSerializerSettings jsonSerializerSettings, IAbstractCredentials credentials);
 
     }
 

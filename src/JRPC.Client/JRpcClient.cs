@@ -41,12 +41,12 @@ namespace JRPC.Client {
         }
 
         //TODO: удалить метод
-        public Task<string> Call(string name, string method, string parameters, AbstractCredentials credentials) {
+        public Task<string> Call(string name, string method, string parameters, IAbstractCredentials credentials) {
             return InvokeRequest(GetEndPoint(name), method,
                 JsonConvert.DeserializeObject(parameters, _jsonSerializerSettings), credentials);
         }
 
-        public Task<TResult> Call<TResult>(string name, string method, object parameters, AbstractCredentials credentials) {
+        public Task<TResult> Call<TResult>(string name, string method, object parameters, IAbstractCredentials credentials) {
             return InvokeRequest<TResult>(GetEndPoint(name), method, parameters, credentials);
         }
 
@@ -54,7 +54,7 @@ namespace JRPC.Client {
             return GetProxy<T>(taskName, null);
         }
 
-        public T GetProxy<T>(string taskName, AbstractCredentials credentials) where T : class {
+        public T GetProxy<T>(string taskName, IAbstractCredentials credentials) where T : class {
             var cacheKey = GetEndPoint(taskName);
             return JRpcStaticClientFactory.Get<T>(this, taskName, cacheKey, _jsonSerializerSettings, credentials);
         }
@@ -65,12 +65,12 @@ namespace JRPC.Client {
                        : "/") + name;
         }
 
-        private async Task<T> InvokeRequest<T>(string url, string method, object data, AbstractCredentials credentials) {
+        private async Task<T> InvokeRequest<T>(string url, string method, object data, IAbstractCredentials credentials) {
             return JsonConvert.DeserializeObject<T>(await InvokeRequest(url, method, data, credentials).ConfigureAwait(false),
                 _jsonSerializerSettings);
         }
 
-        private async Task<string> InvokeRequest(string service, string method, object data, AbstractCredentials credentials) {
+        private async Task<string> InvokeRequest(string service, string method, object data, IAbstractCredentials credentials) {
             var id = new Random().Next();
 
             var request = new JRpcRequest {
@@ -108,7 +108,7 @@ namespace JRPC.Client {
         /// <param name="credentials"></param>
         /// <returns></returns>
         private static async Task<string> HttpAsyncRequest(string method, string contentType, string url,
-            string requestBody, TimeSpan timeout, AbstractCredentials credentials) {
+            string requestBody, TimeSpan timeout, IAbstractCredentials credentials) {
             var request = (HttpWebRequest) WebRequest.Create(url);
             if (request.ServicePoint.ConnectionLimit < 100) {
                 request.ServicePoint.ConnectionLimit = 100;

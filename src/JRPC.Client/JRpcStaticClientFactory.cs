@@ -17,13 +17,13 @@ namespace JRPC.Client {
             string methodName,
             string parametersStr,
             JsonSerializerSettings jsonSerializerSettings,
-            AbstractCredentials credentials) {
+            IAbstractCredentials credentials) {
             return client.Call(taskName, methodName, parametersStr, credentials)
                 .AfterSuccess(r =>
                     JsonConvert.DeserializeObject<TResult>(r, jsonSerializerSettings));
         }
 
-        public static T Get<T>(IJRpcClient client, string taskName, string cacheKey, JsonSerializerSettings jsonSerializerSettings, AbstractCredentials credentials) where T : class {
+        public static T Get<T>(IJRpcClient client, string taskName, string cacheKey, JsonSerializerSettings jsonSerializerSettings, IAbstractCredentials credentials) where T : class {
             return (T) _proxiesCache.GetOrAdd(Tuple.Create(cacheKey, taskName, typeof(T)),
                 k => ServiceFactory.CreateWithInterceptor<T>(new JRpcIntercepter(client, k.Item2, jsonSerializerSettings, credentials)));
         }

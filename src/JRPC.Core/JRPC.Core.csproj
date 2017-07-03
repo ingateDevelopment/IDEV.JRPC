@@ -67,7 +67,7 @@
     <Compile Include="JRpcRequest.cs" />
     <Compile Include="JRpcResponse.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Security\AbstractCredentials.cs" />
+    <Compile Include="Security\IAbstractCredentials.cs" />
     <Compile Include="Security\BasicCredentials.cs" />
   </ItemGroup>
   <ItemGroup>

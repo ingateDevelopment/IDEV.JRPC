@@ -1,6 +1,9 @@
 ﻿namespace JRPC.Core.Security {
 
-    public class BasicCredentials : AbstractCredentials {
+    /// <summary>
+    /// Класс базовой авторизации
+    /// </summary>
+    public class BasicCredentials : IAbstractCredentials {
 
         private string _basic;
 
@@ -8,7 +11,7 @@
             _basic = "Basic " + System.Convert.ToBase64String(System.Text.Encoding.GetEncoding("ISO-8859-1").GetBytes(login + ":" + password));
         }
 
-        public override string GetHeaderValue() {
+        public string GetHeaderValue() {
             return _basic;
         }
 
