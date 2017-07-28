@@ -15,6 +15,7 @@ using JRPC.Service.Registry;
 namespace JRPC.Service {
 
     public sealed class JRpcService {
+
         private const int DefaultStartPort = 5678;
         private const int DefaultEndPort = 60000;
         private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
@@ -65,7 +66,6 @@ namespace JRPC.Service {
             string url = $"http://{address}:{port}/";
             _logger.Info("Starting RPC service on {0}...", url);
 
-
             foreach (var service in services.Keys) {
                 _registeredConsulIds.Add(RegisterInConsul(service, url, address, port.Value));
                 services[service].BindingUrl = $"{url}{service}";
@@ -92,7 +92,7 @@ namespace JRPC.Service {
                         }
                     }
 
-                    context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                    context.Response.StatusCode = (int) HttpStatusCode.NotFound;
                     return context.Response.WriteAsync(string.Empty);
                 }));
                 return true;
@@ -116,12 +116,11 @@ namespace JRPC.Service {
         }
 
         private static List<int> GetAvailiablePorts() {
-            IPGlobalProperties properties = IPGlobalProperties.GetIPGlobalProperties();
-            IPEndPoint[] tcpEndPoints = properties.GetActiveTcpListeners();
-
-            List<int> usedPorts = tcpEndPoints.Select(p => p.Port).ToList();
-
-            var unusedPorts = Enumerable.Range(DefaultStartPort, DefaultEndPort - DefaultStartPort)
+            var properties = IPGlobalProperties.GetIPGlobalProperties();
+            var tcpEndPoints = properties.GetActiveTcpListeners();
+            var usedPorts = tcpEndPoints.Select(p => p.Port).ToList();
+            var unusedPorts = Enumerable
+                .Range(DefaultStartPort, DefaultEndPort - DefaultStartPort)
                 .Where(port => !usedPorts.Contains(port)).ToArray();
             return unusedPorts.OrderBy(t => Guid.NewGuid()).ToList();
         }
@@ -141,7 +140,7 @@ namespace JRPC.Service {
                 Address = address,
                 Port = port,
                 ID = consulServiceId,
-                Tags = new[] { "urlprefix-/" + moduleName },
+                Tags = new[] {"urlprefix-/" + moduleName},
                 Check = new AgentServiceCheck {
                     HTTP = baseUrl + moduleName,
                     Interval = TimeSpan.FromSeconds(10),
@@ -155,17 +154,15 @@ namespace JRPC.Service {
 
         private static string GetAddress() {
             var configValue = ConfigurationManager.AppSettings.Get("ServiceAddress");
-            if (!string.IsNullOrWhiteSpace(configValue)) {
-                return configValue;
-            }
-            return GetAdressFromDns();
+            return !string.IsNullOrWhiteSpace(configValue) ? configValue : GetAdressFromDns();
         }
-
 
         private static string GetAdressFromDns() {
             return Array.FindLast(
                 Dns.GetHostEntry(string.Empty).AddressList,
                 a => a.AddressFamily == AddressFamily.InterNetwork).ToString();
         }
+
     }
+
 }

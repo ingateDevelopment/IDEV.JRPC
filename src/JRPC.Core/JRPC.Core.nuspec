@@ -12,6 +12,6 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="bin\x64\Release\JRPC.Core.dll" target="lib\net451" />
+    <file src="bin\Release\JRPC.Core.dll" target="lib\net451" />
   </files>
 </package>

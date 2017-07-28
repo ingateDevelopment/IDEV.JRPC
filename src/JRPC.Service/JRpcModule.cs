@@ -13,6 +13,7 @@ using JRPC.Core;
 namespace JRPC.Service {
 
     public abstract class JRpcModule {
+
         private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
         private readonly Dictionary<string, MethodInvoker> _handlers = new Dictionary<string, MethodInvoker>();
 
@@ -27,7 +28,8 @@ namespace JRPC.Service {
         public Func<IOwinContext, Task> PrintInfo {
             get { return (context) => Task.FromResult(ModuleInfo); }
         }
-        public string ModuleInfo => $"Module [{ModuleName}] built at {_buildTime.ToString("yyyy-MM-dd HH:mm:ss")} bindingUrl at {BindingUrl}";
+
+        public string ModuleInfo => $"Module [{ModuleName}] built at {_buildTime:yyyy-MM-dd HH:mm:ss} bindingUrl at {BindingUrl}";
 
         public Func<IOwinContext, Task> ProcessRequest {
             get {
@@ -35,6 +37,7 @@ namespace JRPC.Service {
                     var reader = new StreamReader(context.Request.Body);
                     var content = reader.ReadToEnd();
                     var request = JsonConvert.DeserializeObject<JRpcRequest>(content, _jsonSerializerSettings);
+                    _logger.Debug("Request for {0}.{1} with ID {2} received.", ModuleName, request.Method, request.Id);
                     if (_logger.IsTraceEnabled) {
                         _logger.Trace("Processing request. Service [{0}]. Body {1}", ModuleName, content);
                     }
@@ -56,20 +59,23 @@ namespace JRPC.Service {
                             Id = request.Id,
                             Result = handle.Invoke(this, request.Params)
                         };
+                        _logger.Debug("Response by {0}.{1} with ID {2} sent.", ModuleName, request.Method, request.Id);
                         return SerializeResponse(context.Response, resp);
                     } catch (Exception ex) {
+                        var newEx = new JRpcException(ex, ModuleInfo, methodName);
                         var response = new JRpcResponse {
                             Result = null,
-                            Error = new JRpcException(ex, ModuleInfo, methodName),
+                            Error = newEx,
                             Id = request.Id
                         };
+                        _logger.Error("Error occurred during method invocation.", newEx);
                         return SerializeResponse(context.Response, response);
                     }
                 };
             }
         }
 
-        protected virtual IList<JsonConverter> JsonConverters { get { return new JsonConverter[0]; } }
+        protected virtual IList<JsonConverter> JsonConverters => new JsonConverter[0];
 
         protected virtual JsonSerializerSettings GetSerializerSettings() {
             return new JsonSerializerSettings {
@@ -95,30 +101,28 @@ namespace JRPC.Service {
             var type = GetType();
             var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance).OrderByDescending(t => t.DeclaringType == type);
             var interfaces = type.GetInterfaces();
-            
+
             var serialiser = JsonSerializer.Create(_jsonSerializerSettings);
 
             var duplicateMethod = methods.GroupBy(t => Tuple.Create(t.Name, t.DeclaringType)).FirstOrDefault(t => t.Count() > 1);
             if (duplicateMethod != null) {
                 var methodInfo = duplicateMethod.ToList().First();
-                throw new JRpcException($"method with name {methodInfo.Name} already exist in type {type}", ModuleInfo, methodInfo.Name);
+                throw new JRpcException($"Method with name {methodInfo.Name} already exist in type {type}", ModuleInfo, methodInfo.Name);
             }
             var methodInfos = interfaces.SelectMany(
-                i => i.GetMethods(BindingFlags.Public | BindingFlags.Instance)).ToList()
+                    i => i.GetMethods(BindingFlags.Public | BindingFlags.Instance)).ToList()
                 .GroupBy(t => t.Name.ToLower());
 
             var duplicateInterfaceMethod = methodInfos.FirstOrDefault(t => t.Count() > 1);
             if (duplicateInterfaceMethod != null) {
                 var methodInfo = duplicateInterfaceMethod.ToList().First();
-                throw new JRpcException($"method with name {methodInfo.Name} already  exist in interfaces {type}", ModuleInfo, methodInfo.Name);
+                throw new JRpcException($"Method with name {methodInfo.Name} already exist in interfaces {type}", ModuleInfo, methodInfo.Name);
             }
 
-
-            Dictionary<string, MethodInfo> interfaceMethodsMap = methodInfos
-                .ToDictionary(t => t.Key, t => t.OrderByDescending(s => s.DeclaringType == type).FirstOrDefault());
+            var interfaceMethodsMap = methodInfos.ToDictionary(t => t.Key, t => t.OrderByDescending(s => s.DeclaringType == type).FirstOrDefault());
 
             foreach (var method in methods.OrderByDescending(t => t.DeclaringType == type)) {
-                var attribute = method.GetCustomAttributes(typeof (JRpcMethodAttribute), false).SingleOrDefault() as JRpcMethodAttribute;
+                var attribute = method.GetCustomAttributes(typeof(JRpcMethodAttribute), false).SingleOrDefault() as JRpcMethodAttribute;
                 var methodName = attribute != null && !string.IsNullOrWhiteSpace(attribute.MethodName)
                     ? attribute.MethodName.ToLower()
                     : method.Name.ToLower();
@@ -152,5 +156,7 @@ namespace JRPC.Service {
 
             return TimeZoneInfo.ConvertTimeFromUtc(linkTimeUtc, TimeZoneInfo.Local);
         }
+
     }
+
 }

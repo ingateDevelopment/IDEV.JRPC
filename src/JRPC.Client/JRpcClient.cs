@@ -9,11 +9,13 @@ using JRPC.Core.Security;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
+using NLog;
 
 namespace JRPC.Client {
 
     public class JRpcClient : IJRpcClient {
 
+        private static Logger _logger = LogManager.GetCurrentClassLogger();
         private readonly string _endpoint;
         private readonly TimeSpan _timeout;
         private readonly JsonSerializerSettings _jsonSerializerSettings;
@@ -71,7 +73,7 @@ namespace JRPC.Client {
         }
 
         private async Task<string> InvokeRequest(string service, string method, object data, IAbstractCredentials credentials) {
-            var id = new Random().Next();
+            var id = Guid.NewGuid().ToString();
 
             var request = new JRpcRequest {
                 Id = id,
@@ -79,16 +81,20 @@ namespace JRPC.Client {
                 Params = JToken.FromObject(data),
             };
 
+            _logger.Debug("Request for {0}.{1} with ID {2} sent.", service, method, id);
+
             var content = await HttpAsyncRequest("POST",
                 "application/json",
                 service,
                 JsonConvert.SerializeObject(request, _jsonSerializerSettings),
                 _timeout, credentials).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(content)) {
-                throw new Exception("Не получили ответ от сервиса " + service);
+                throw new Exception($"Response from {service} is empty.");
             }
 
             var jsonresponse = JsonConvert.DeserializeObject<JRpcResponse>(content, _jsonSerializerSettings);
+
+            _logger.Debug("Response for {0}.{1} with ID {2} received.", service, method, jsonresponse.Id);
 
             if (jsonresponse.Error != null) {
                 throw jsonresponse.Error;
@@ -145,14 +151,16 @@ namespace JRPC.Client {
                     response = null;
                 }
             } catch (TimeoutException ex) {
+                _logger.Error("Timeout occurred during service invocation.", ex);
                 response = null;
             }
 
             using (response) {
-                var responceBytes = response != null
+                var responseBytes = response != null
                     ? ReadBytesToEnd(response.GetResponseStream())
                     : new byte[0];
-                var responceString = Encoding.UTF8.GetString(responceBytes);
+                var responceString = Encoding.UTF8.GetString(responseBytes);
+                response?.Dispose();
                 return responceString;
             }
         }
@@ -164,17 +172,9 @@ namespace JRPC.Client {
         /// <returns>Массив прочтенных байтов</returns>
         /// <remarks>Внимание! поток будет закрыт!</remarks>
         public static byte[] ReadBytesToEnd(Stream stream) {
-            //Размер блока читаемого из потока, в байтах
-            const int BYTE_BLOCK_SIZE = 102400;
-
-            var buffer = new byte[BYTE_BLOCK_SIZE];
-            using (var ms = new MemoryStream()) {
-                int read;
-                while ((read = stream.Read(buffer, 0, buffer.Length)) > 0) {
-                    ms.Write(buffer, 0, read);
-                }
-                return ms.ToArray();
-            }
+            var ms = new MemoryStream();
+            stream.CopyTo(ms);
+            return ms.ToArray();
         }
 
     }
