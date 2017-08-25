@@ -37,7 +37,15 @@ namespace JRPC.Service {
                     var reader = new StreamReader(context.Request.Body);
                     var content = reader.ReadToEnd();
                     var request = JsonConvert.DeserializeObject<JRpcRequest>(content, _jsonSerializerSettings);
-                    _logger.Debug("Request for {0}.{1} with ID {2} received.", ModuleName, request.Method, request.Id);
+
+                    _logger.Log(new LogEventInfo {
+                        Level = LogLevel.Debug,
+                        LoggerName = _logger.Name,
+                        Message = "Request for {0}.{1} with ID {2} received.",
+                        Parameters = new object[] { ModuleName, request.Method, request.Id },
+                        Properties = { { "service", ModuleName }, { "method", request.Method }, { "RequestID", request.Id } }
+                    });
+
                     if (_logger.IsTraceEnabled) {
                         _logger.Trace("Processing request. Service [{0}]. Body {1}", ModuleName, content);
                     }
@@ -52,15 +60,22 @@ namespace JRPC.Service {
                             Error = new JRpcException("Method not found. The method does not exist / is not available.", ModuleInfo, methodName),
                             Id = request.Id
                         };
-                        return SerializeResponse(context.Response, response);
+                        SerializeResponse(context.Response, response);
                     }
                     try {
                         var resp = new JRpcResponse {
                             Id = request.Id,
                             Result = handle.Invoke(this, request.Params)
                         };
-                        _logger.Debug("Response by {0}.{1} with ID {2} sent.", ModuleName, request.Method, request.Id);
-                        return SerializeResponse(context.Response, resp);
+                        _logger.Log(new LogEventInfo {
+                            Level = LogLevel.Debug,
+                            LoggerName = _logger.Name,
+                            Message = "Response by {0}.{1} with ID {2} sent.",
+                            Parameters = new object[] { ModuleName, request.Method, request.Id },
+                            Properties = { { "service", ModuleName }, { "method", request.Method }, { "RequestID", request.Id } }
+                        });
+
+                        SerializeResponse(context.Response, resp);
                     } catch (Exception ex) {
                         var newEx = new JRpcException(ex, ModuleInfo, methodName);
                         var response = new JRpcResponse {
@@ -69,8 +84,9 @@ namespace JRPC.Service {
                             Id = request.Id
                         };
                         _logger.Error("Error occurred during method invocation.", newEx);
-                        return SerializeResponse(context.Response, response);
+                        SerializeResponse(context.Response, response);
                     }
+                    return Task.FromResult(0);
                 };
             }
         }
@@ -91,10 +107,12 @@ namespace JRPC.Service {
             _buildTime = GetLinkerTime(GetType().Assembly);
         }
 
-        private Task SerializeResponse(IOwinResponse response, JRpcResponse rpcResponse) {
-            var str = JsonConvert.SerializeObject(rpcResponse, _jsonSerializerSettings);
+        private void SerializeResponse(IOwinResponse response, JRpcResponse rpcResponse) {
             response.ContentType = "application/json";
-            return response.WriteAsync(str);
+            using (var jw = new JsonTextWriter(new StreamWriter(response.Body))) {
+                var serializer = JsonSerializer.Create(_jsonSerializerSettings);
+                serializer.Serialize(jw, rpcResponse);
+            }
         }
 
         private void BuildService() {

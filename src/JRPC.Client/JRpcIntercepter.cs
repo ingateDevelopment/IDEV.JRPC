@@ -47,9 +47,8 @@ namespace JRPC.Client {
 
                 var needReturnTask = invoker.Item2;
                 invocation.ReturnValue = result;
-                if (needReturnTask) {
-                } else {
-                    invocation.ReturnValue = (object) ((dynamic) result).Result;
+                if (!needReturnTask) {
+                    invocation.ReturnValue = (object)((dynamic)result).Result;
                 }
             } catch (AggregateException e) {
                 Exception ex = e;
@@ -78,13 +77,18 @@ namespace JRPC.Client {
             }
             return
                 Tuple.Create(
-                    (Invoker) Delegate.CreateDelegate(typeof(Invoker), _invokeMethod.MakeGenericMethod(returnType)),
+                    (Invoker)Delegate.CreateDelegate(typeof(Invoker), _invokeMethod.MakeGenericMethod(returnType)),
                     needReturnTask);
         }
 
         private delegate object Invoker(
-            IJRpcClient client, string taskName, string methodName, string parametersStr,
-            JsonSerializerSettings jsonSerializerSettings, IAbstractCredentials credentials);
+            IJRpcClient client,
+            string taskName,
+            string methodName,
+            string parametersStr,
+            JsonSerializerSettings jsonSerializerSettings,
+            IAbstractCredentials credentials
+            );
 
     }
 

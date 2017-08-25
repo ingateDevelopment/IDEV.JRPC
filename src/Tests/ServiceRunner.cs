@@ -7,8 +7,8 @@ using JRPC.Service.Registry;
 using Tests.Services;
 
 namespace Tests {
-    public class ServiceRunner {
 
+    public class ServiceRunner {
 
         private const string DEFAULT_IP_ADRESS = "localhost";
         private const string DEFAULT_PORT = "8788";
@@ -33,5 +33,7 @@ namespace Tests {
             var clientProxy = client.GetProxy<T>(serviceName);
             return Tuple.Create(service, clientProxy);
         }
+
     }
+
 }

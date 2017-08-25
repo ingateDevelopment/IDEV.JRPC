@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -44,12 +45,12 @@ namespace JRPC.Client {
 
         //TODO: удалить метод
         public Task<string> Call(string name, string method, string parameters, IAbstractCredentials credentials) {
-            return InvokeRequest(GetEndPoint(name), method,
+            return InvokeRequest(name, method,
                 JsonConvert.DeserializeObject(parameters, _jsonSerializerSettings), credentials);
         }
 
         public Task<TResult> Call<TResult>(string name, string method, object parameters, IAbstractCredentials credentials) {
-            return InvokeRequest<TResult>(GetEndPoint(name), method, parameters, credentials);
+            return InvokeRequest<TResult>(name, method, parameters, credentials);
         }
 
         public T GetProxy<T>(string taskName) where T : class {
@@ -81,11 +82,17 @@ namespace JRPC.Client {
                 Params = JToken.FromObject(data),
             };
 
-            _logger.Debug("Request for {0}.{1} with ID {2} sent.", service, method, id);
+            _logger.Log(new LogEventInfo {
+                Level = LogLevel.Debug,
+                LoggerName = _logger.Name,
+                Message = "Request for {0}.{1} with ID {2} sent.",
+                Parameters = new object[] {service, method, id},
+                Properties = {{"service", service}, {"method", method}, {"RequestID", id}, {"Process", Process.GetCurrentProcess().ProcessName}}
+            });
 
             var content = await HttpAsyncRequest("POST",
                 "application/json",
-                service,
+                GetEndPoint(service),
                 JsonConvert.SerializeObject(request, _jsonSerializerSettings),
                 _timeout, credentials).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(content)) {
@@ -94,7 +101,13 @@ namespace JRPC.Client {
 
             var jsonresponse = JsonConvert.DeserializeObject<JRpcResponse>(content, _jsonSerializerSettings);
 
-            _logger.Debug("Response for {0}.{1} with ID {2} received.", service, method, jsonresponse.Id);
+            _logger.Log(new LogEventInfo {
+                Level = LogLevel.Debug,
+                LoggerName = _logger.Name,
+                Message = "Response for {0}.{1} with ID {2} received.",
+                Parameters = new object[] {service, method, jsonresponse.Id},
+                Properties = {{"service", service}, {"method", method}, {"RequestID", jsonresponse.Id}, {"Process", Process.GetCurrentProcess().ProcessName}}
+            });
 
             if (jsonresponse.Error != null) {
                 throw jsonresponse.Error;

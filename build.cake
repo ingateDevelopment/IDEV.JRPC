@@ -5,7 +5,7 @@
 
 var target = Argument("target", "Default");
 var configuration = Argument("configuration", "Release");
-var version = Argument("version", "1.1.8");
+var version = Argument("version", "1.1.10");
 
 //////////////////////////////////////////////////////////////////////
 // PREPARATION
@@ -76,8 +76,11 @@ Task("Run-Unit-Tests")
     .IsDependentOn("Build")
     .Does(() =>
 {
-    NUnit3("./src/**/bin/" + configuration + "/*.Tests.dll", new NUnit3Settings {
-        NoResults = true
+    var testAssemblies = GetFiles("./src/**/bin/" + configuration + "/*Tests.dll");
+    NUnit3(testAssemblies, new NUnit3Settings {
+            NoResults = true,
+		    Configuration = configuration,
+		    Full = true
         });
 });
 
