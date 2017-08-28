@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using JRPC.Core.Security;
 using Newtonsoft.Json;
@@ -15,12 +16,10 @@ namespace JRPC.Client {
             IJRpcClient client,
             string taskName,
             string methodName,
-            string parametersStr,
+            Dictionary<string, object> parametersStr,
             JsonSerializerSettings jsonSerializerSettings,
             IAbstractCredentials credentials) {
-            return client.Call(taskName, methodName, parametersStr, credentials)
-                .AfterSuccess(r =>
-                    JsonConvert.DeserializeObject<TResult>(r, jsonSerializerSettings));
+            return client.Call<TResult>(taskName, methodName, parametersStr, credentials);
         }
 
         public static T Get<T>(IJRpcClient client, string taskName, string cacheKey, JsonSerializerSettings jsonSerializerSettings, IAbstractCredentials credentials) where T : class {

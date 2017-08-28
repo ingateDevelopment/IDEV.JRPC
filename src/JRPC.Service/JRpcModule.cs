@@ -34,20 +34,22 @@ namespace JRPC.Service {
         public Func<IOwinContext, Task> ProcessRequest {
             get {
                 return (context) => {
-                    var reader = new StreamReader(context.Request.Body);
-                    var content = reader.ReadToEnd();
-                    var request = JsonConvert.DeserializeObject<JRpcRequest>(content, _jsonSerializerSettings);
+                    var serializer = JsonSerializer.Create(_jsonSerializerSettings);
+
+                    var reader = new JsonTextReader(new StreamReader(context.Request.Body));
+                    var request = serializer.Deserialize<JRpcRequest>(reader);
+                    reader.Close();
 
                     _logger.Log(new LogEventInfo {
                         Level = LogLevel.Debug,
                         LoggerName = _logger.Name,
                         Message = "Request for {0}.{1} with ID {2} received.",
-                        Parameters = new object[] { ModuleName, request.Method, request.Id },
-                        Properties = { { "service", ModuleName }, { "method", request.Method }, { "RequestID", request.Id } }
+                        Parameters = new object[] {ModuleName, request.Method, request.Id},
+                        Properties = {{"service", ModuleName}, {"method", request.Method}, {"RequestID", request.Id}}
                     });
 
                     if (_logger.IsTraceEnabled) {
-                        _logger.Trace("Processing request. Service [{0}]. Body {1}", ModuleName, content);
+                        _logger.Trace("Processing request. Service [{0}]. Method {1}", ModuleName, request.Method);
                     }
 
                     MethodInvoker handle;
@@ -71,8 +73,8 @@ namespace JRPC.Service {
                             Level = LogLevel.Debug,
                             LoggerName = _logger.Name,
                             Message = "Response by {0}.{1} with ID {2} sent.",
-                            Parameters = new object[] { ModuleName, request.Method, request.Id },
-                            Properties = { { "service", ModuleName }, { "method", request.Method }, { "RequestID", request.Id } }
+                            Parameters = new object[] {ModuleName, request.Method, request.Id},
+                            Properties = {{"service", ModuleName}, {"method", request.Method}, {"RequestID", request.Id}}
                         });
 
                         SerializeResponse(context.Response, resp);

@@ -39,17 +39,13 @@ namespace JRPC.Client {
             for (var i = 0; i < parameters.Length; i++) {
                 dictionary[parameters[i].Name] = invocation.Arguments[i];
             }
-            var parametersStr = SerializeParams(dictionary);
             var invoker = _invokers.GetOrAdd(invocation.Method, GetInvoker);
             try {
-                var result = invoker.Item1(_client, _taskName, invocation.Method.Name, parametersStr,
+                var result = invoker.Item1(_client, _taskName, invocation.Method.Name, dictionary,
                     _jsonSerializerSettings, _credentials);
 
                 var needReturnTask = invoker.Item2;
-                invocation.ReturnValue = result;
-                if (!needReturnTask) {
-                    invocation.ReturnValue = (object)((dynamic)result).Result;
-                }
+                invocation.ReturnValue = needReturnTask ? result : (object) ((dynamic) result).Result;
             } catch (AggregateException e) {
                 Exception ex = e;
                 while (ex is AggregateException) {
@@ -59,11 +55,7 @@ namespace JRPC.Client {
             }
         }
 
-        private string SerializeParams(Dictionary<string, object> dictionary) {
-            return JsonConvert.SerializeObject(dictionary, _jsonSerializerSettings);
-        }
-
-        private Tuple<Invoker, bool> GetInvoker(MethodInfo methodInfo) {
+        private static Tuple<Invoker, bool> GetInvoker(MethodInfo methodInfo) {
             var returnType = methodInfo.ReturnType;
             var needReturnTask = false;
             if (returnType == typeof(void)) {
@@ -77,7 +69,7 @@ namespace JRPC.Client {
             }
             return
                 Tuple.Create(
-                    (Invoker)Delegate.CreateDelegate(typeof(Invoker), _invokeMethod.MakeGenericMethod(returnType)),
+                    (Invoker) Delegate.CreateDelegate(typeof(Invoker), _invokeMethod.MakeGenericMethod(returnType)),
                     needReturnTask);
         }
 
@@ -85,10 +77,10 @@ namespace JRPC.Client {
             IJRpcClient client,
             string taskName,
             string methodName,
-            string parametersStr,
+            Dictionary<string, object> parametersStr,
             JsonSerializerSettings jsonSerializerSettings,
             IAbstractCredentials credentials
-            );
+        );
 
     }
 
