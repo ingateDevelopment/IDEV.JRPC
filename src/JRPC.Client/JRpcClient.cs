@@ -52,7 +52,7 @@ namespace JRPC.Client {
         //}
 
         public Task<TResult> Call<TResult>(string name, string method, Dictionary<string, object> parameters, IAbstractCredentials credentials) {
-            return InvokeRequest<TResult>(name, method, parameters, credentials);
+            return Task.FromResult(InvokeRequest<TResult>(name, method, parameters, credentials));
         }
 
         public T GetProxy<T>(string taskName) where T : class {
@@ -70,8 +70,8 @@ namespace JRPC.Client {
                        : "/") + name;
         }
 
-        private async Task<T> InvokeRequest<T>(string url, string method, object data, IAbstractCredentials credentials) {
-            var respData = await InvokeRequest(url, method, data, credentials).ConfigureAwait(false);
+        private T InvokeRequest<T>(string url, string method, object data, IAbstractCredentials credentials) {
+            var respData = InvokeRequest(url, method, data, credentials);
             if (respData == null) {
                 return default(T);
             }
@@ -79,13 +79,13 @@ namespace JRPC.Client {
             return tmp.ToObject<T>();
         }
 
-        private async Task<object> InvokeRequest(string service, string method, object data, IAbstractCredentials credentials) {
+        private object InvokeRequest(string service, string method, object data, IAbstractCredentials credentials) {
             var id = Guid.NewGuid().ToString();
 
             var request = new JRpcRequest {
                 Id = id,
-                Method = method.ToLowerInvariant(),
-                Params = JToken.FromObject(data),
+                Method = method,
+                Params = data,
             };
 
             _logger.Log(new LogEventInfo {
@@ -96,11 +96,11 @@ namespace JRPC.Client {
                 Properties = {{"service", service}, {"method", method}, {"RequestID", id}, {"Process", Process.GetCurrentProcess().ProcessName}}
             });
 
-            var jsonresponse = await HttpAsyncRequest(Method,
+            var jsonresponse = HttpAsyncRequest(Method,
                 "application/json",
                 GetEndPoint(service),
                 request,
-                _timeout, credentials).ConfigureAwait(false);
+                _timeout, credentials).Result;
 
             _logger.Log(new LogEventInfo {
                 Level = LogLevel.Debug,
@@ -176,18 +176,6 @@ namespace JRPC.Client {
             using (var jsonTextReader = new JsonTextReader(sr)) {
                 return serializer.Deserialize<JRpcResponse>(jsonTextReader);
             }
-        }
-
-        /// <summary>
-        /// Читаем из потока все байты
-        /// </summary>
-        /// <param name="stream">Поток</param>
-        /// <returns>Массив прочтенных байтов</returns>
-        /// <remarks>Внимание! поток будет закрыт!</remarks>
-        public static byte[] ReadBytesToEnd(Stream stream) {
-            var ms = new MemoryStream();
-            stream.CopyTo(ms);
-            return ms.ToArray();
         }
 
     }

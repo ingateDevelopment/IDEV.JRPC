@@ -12,7 +12,7 @@ namespace JRPC.Client {
         private static readonly ConcurrentDictionary<Tuple<string, string, Type>, object> _proxiesCache = new ConcurrentDictionary<Tuple<string, string, Type>, object>();
 
         //NOTE: НЕ УДАЛЯТЬ, т.к. используется рефлексией
-        private static object Invoke<TResult>(
+        public static object Invoke<TResult>(
             IJRpcClient client,
             string taskName,
             string methodName,

@@ -8,7 +8,7 @@ namespace JRPC.Core {
         public string Method { get; set; }
 
         [JsonProperty("params")]
-        public JToken Params { get; set; }
+        public object Params { get; set; }
 
         [JsonProperty("id")]
         public object Id { get; set; }

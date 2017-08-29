@@ -126,7 +126,7 @@ namespace JRPC.Service {
         }
 
         public bool Stop() {
-            _server.Dispose();
+            _server?.Dispose();
             foreach (var serviceId in _registeredConsulIds) {
                 _consulClient.Agent.ServiceDeregister(serviceId);
             }

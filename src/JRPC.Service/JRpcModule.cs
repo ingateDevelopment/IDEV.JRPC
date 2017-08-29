@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using NLog;
 using JRPC.Core;
+using Newtonsoft.Json.Linq;
 
 namespace JRPC.Service {
 
@@ -63,30 +64,31 @@ namespace JRPC.Service {
                             Id = request.Id
                         };
                         SerializeResponse(context.Response, response);
-                    }
-                    try {
-                        var resp = new JRpcResponse {
-                            Id = request.Id,
-                            Result = handle.Invoke(this, request.Params)
-                        };
-                        _logger.Log(new LogEventInfo {
-                            Level = LogLevel.Debug,
-                            LoggerName = _logger.Name,
-                            Message = "Response by {0}.{1} with ID {2} sent.",
-                            Parameters = new object[] {ModuleName, request.Method, request.Id},
-                            Properties = {{"service", ModuleName}, {"method", request.Method}, {"RequestID", request.Id}}
-                        });
+                    } else {
+                        try {
+                            var resp = new JRpcResponse {
+                                Id = request.Id,
+                                Result = handle.Invoke(this, request.Params as JToken)
+                            };
+                            _logger.Log(new LogEventInfo {
+                                Level = LogLevel.Debug,
+                                LoggerName = _logger.Name,
+                                Message = "Response by {0}.{1} with ID {2} sent.",
+                                Parameters = new object[] {ModuleName, request.Method, request.Id},
+                                Properties = {{"service", ModuleName}, {"method", request.Method}, {"RequestID", request.Id}}
+                            });
 
-                        SerializeResponse(context.Response, resp);
-                    } catch (Exception ex) {
-                        var newEx = new JRpcException(ex, ModuleInfo, methodName);
-                        var response = new JRpcResponse {
-                            Result = null,
-                            Error = newEx,
-                            Id = request.Id
-                        };
-                        _logger.Error("Error occurred during method invocation.", newEx);
-                        SerializeResponse(context.Response, response);
+                            SerializeResponse(context.Response, resp);
+                        } catch (Exception ex) {
+                            var newEx = new JRpcException(ex, ModuleInfo, methodName);
+                            var response = new JRpcResponse {
+                                Result = null,
+                                Error = newEx,
+                                Id = request.Id
+                            };
+                            _logger.Error("Error occurred during method invocation.", newEx);
+                            SerializeResponse(context.Response, response);
+                        }
                     }
                     return Task.FromResult(0);
                 };
@@ -131,7 +133,7 @@ namespace JRPC.Service {
             }
             var methodInfos = interfaces.SelectMany(
                     i => i.GetMethods(BindingFlags.Public | BindingFlags.Instance)).ToList()
-                .GroupBy(t => t.Name.ToLower());
+                .GroupBy(t => t.Name.ToLower()).ToList();
 
             var duplicateInterfaceMethod = methodInfos.FirstOrDefault(t => t.Count() > 1);
             if (duplicateInterfaceMethod != null) {
@@ -143,7 +145,7 @@ namespace JRPC.Service {
 
             foreach (var method in methods.OrderByDescending(t => t.DeclaringType == type)) {
                 var attribute = method.GetCustomAttributes(typeof(JRpcMethodAttribute), false).SingleOrDefault() as JRpcMethodAttribute;
-                var methodName = attribute != null && !string.IsNullOrWhiteSpace(attribute.MethodName)
+                var methodName = !string.IsNullOrWhiteSpace(attribute?.MethodName)
                     ? attribute.MethodName.ToLower()
                     : method.Name.ToLower();
 
