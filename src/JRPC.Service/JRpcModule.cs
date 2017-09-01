@@ -25,6 +25,7 @@ namespace JRPC.Service {
         public string BindingUrl { get; set; }
 
         private readonly DateTime _buildTime;
+        private JsonSerializer _jsonSerializer;
 
         public Func<IOwinContext, Task> PrintInfo {
             get { return (context) => Task.FromResult(ModuleInfo); }
@@ -35,11 +36,21 @@ namespace JRPC.Service {
         public Func<IOwinContext, Task> ProcessRequest {
             get {
                 return (context) => {
-                    var serializer = JsonSerializer.Create(_jsonSerializerSettings);
+                    JRpcRequest request = null;
+                    using (var reader = new JsonTextReader(new StreamReader(context.Request.Body))) {
+                        request = _jsonSerializer.Deserialize<JRpcRequest>(reader);
+                    }
 
-                    var reader = new JsonTextReader(new StreamReader(context.Request.Body));
-                    var request = serializer.Deserialize<JRpcRequest>(reader);
-                    reader.Close();
+                    if (request == null) {
+                        var newEx = new JRpcException("Empty JSONRPC request.");
+                        var response = new JRpcResponse {
+                            Result = null,
+                            Error = newEx
+                        };
+                        _logger.Error("Error occurred during method invocation.", newEx);
+                        SerializeResponse(context.Response, response);
+                        return Task.FromResult(0);
+                    }
 
                     _logger.Log(new LogEventInfo {
                         Level = LogLevel.Debug,
@@ -107,6 +118,7 @@ namespace JRPC.Service {
 
         protected JRpcModule() {
             _jsonSerializerSettings = GetSerializerSettings();
+            _jsonSerializer = JsonSerializer.Create(_jsonSerializerSettings);
             BuildService();
             _buildTime = GetLinkerTime(GetType().Assembly);
         }
