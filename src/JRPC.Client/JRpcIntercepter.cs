@@ -11,12 +11,12 @@ namespace JRPC.Client {
 
     internal class JRpcIntercepter : IInterceptor {
 
-        private static readonly MethodInfo _invokeMethod = typeof(JRpcStaticClientFactory).GetMethod("Invoke", BindingFlags.Static | BindingFlags.NonPublic);
+        private static readonly MethodInfo _invokeMethod = typeof(JRpcStaticClientFactory).GetMethod("Invoke", BindingFlags.Static | BindingFlags.Public);
 
         private readonly IJRpcClient _client;
 
-        private readonly ConcurrentDictionary<MethodInfo, Tuple<Invoker, bool>> _invokers =
-            new ConcurrentDictionary<MethodInfo, Tuple<Invoker, bool>>();
+        private readonly ConcurrentDictionary<string, InterceptedMethod> _invokers =
+            new ConcurrentDictionary<string, InterceptedMethod>();
 
         private readonly JsonSerializerSettings _jsonSerializerSettings;
         private readonly string _taskName;
@@ -39,18 +39,12 @@ namespace JRPC.Client {
             for (var i = 0; i < parameters.Length; i++) {
                 dictionary[parameters[i].Name] = invocation.Arguments[i];
             }
-            var parametersStr = SerializeParams(dictionary);
-            var invoker = _invokers.GetOrAdd(invocation.Method, GetInvoker);
+            var invoker = _invokers.GetOrAdd(invocation.Method.Name.ToLowerInvariant(), GetInvoker(invocation.Method));
             try {
-                var result = invoker.Item1(_client, _taskName, invocation.Method.Name, parametersStr,
-                    _jsonSerializerSettings, _credentials);
+                var result = invoker.MethodInvoker(_client, _taskName, invocation.Method.Name.ToLowerInvariant(), dictionary, _jsonSerializerSettings, _credentials);
 
-                var needReturnTask = invoker.Item2;
-                invocation.ReturnValue = result;
-                if (needReturnTask) {
-                } else {
-                    invocation.ReturnValue = (object) ((dynamic) result).Result;
-                }
+                var needReturnTask = invoker.NeedReturnTask;
+                invocation.ReturnValue = needReturnTask ? result : (object) ((dynamic) result).Result;
             } catch (AggregateException e) {
                 Exception ex = e;
                 while (ex is AggregateException) {
@@ -60,11 +54,7 @@ namespace JRPC.Client {
             }
         }
 
-        private string SerializeParams(Dictionary<string, object> dictionary) {
-            return JsonConvert.SerializeObject(dictionary, _jsonSerializerSettings);
-        }
-
-        private Tuple<Invoker, bool> GetInvoker(MethodInfo methodInfo) {
+        private static InterceptedMethod GetInvoker(MethodInfo methodInfo) {
             var returnType = methodInfo.ReturnType;
             var needReturnTask = false;
             if (returnType == typeof(void)) {
@@ -76,15 +66,27 @@ namespace JRPC.Client {
                 returnType = returnType.GetGenericArguments()[0];
                 needReturnTask = true;
             }
-            return
-                Tuple.Create(
-                    (Invoker) Delegate.CreateDelegate(typeof(Invoker), _invokeMethod.MakeGenericMethod(returnType)),
-                    needReturnTask);
+            return new InterceptedMethod() {
+                MethodInvoker = (Invoker) Delegate.CreateDelegate(typeof(Invoker), _invokeMethod.MakeGenericMethod(returnType)),
+                NeedReturnTask = needReturnTask
+            };
+        }
+
+        private class InterceptedMethod {
+
+            public Invoker MethodInvoker { get; set; }
+            public bool NeedReturnTask { get; set; }
+
         }
 
         private delegate object Invoker(
-            IJRpcClient client, string taskName, string methodName, string parametersStr,
-            JsonSerializerSettings jsonSerializerSettings, IAbstractCredentials credentials);
+            IJRpcClient client,
+            string taskName,
+            string methodName,
+            Dictionary<string, object> parametersStr,
+            JsonSerializerSettings jsonSerializerSettings,
+            IAbstractCredentials credentials
+        );
 
     }
 

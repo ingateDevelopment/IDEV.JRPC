@@ -9,10 +9,12 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using NLog;
 using JRPC.Core;
+using Newtonsoft.Json.Linq;
 
 namespace JRPC.Service {
 
     public abstract class JRpcModule {
+
         private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
         private readonly Dictionary<string, MethodInvoker> _handlers = new Dictionary<string, MethodInvoker>();
 
@@ -23,20 +25,43 @@ namespace JRPC.Service {
         public string BindingUrl { get; set; }
 
         private readonly DateTime _buildTime;
+        private JsonSerializer _jsonSerializer;
 
         public Func<IOwinContext, Task> PrintInfo {
             get { return (context) => Task.FromResult(ModuleInfo); }
         }
-        public string ModuleInfo => $"Module [{ModuleName}] built at {_buildTime.ToString("yyyy-MM-dd HH:mm:ss")} bindingUrl at {BindingUrl}";
+
+        public string ModuleInfo => $"Module [{ModuleName}] built at {_buildTime:yyyy-MM-dd HH:mm:ss} bindingUrl at {BindingUrl}";
 
         public Func<IOwinContext, Task> ProcessRequest {
             get {
                 return (context) => {
-                    var reader = new StreamReader(context.Request.Body);
-                    var content = reader.ReadToEnd();
-                    var request = JsonConvert.DeserializeObject<JRpcRequest>(content, _jsonSerializerSettings);
+                    JRpcRequest request = null;
+                    using (var reader = new JsonTextReader(new StreamReader(context.Request.Body))) {
+                        request = _jsonSerializer.Deserialize<JRpcRequest>(reader);
+                    }
+
+                    if (request == null) {
+                        var newEx = new JRpcException("Empty JSONRPC request.");
+                        var response = new JRpcResponse {
+                            Result = null,
+                            Error = newEx
+                        };
+                        _logger.Error("Error occurred during method invocation.", newEx);
+                        SerializeResponse(context.Response, response);
+                        return Task.FromResult(0);
+                    }
+
+                    _logger.Log(new LogEventInfo {
+                        Level = LogLevel.Debug,
+                        LoggerName = _logger.Name,
+                        Message = "Request for {0}.{1} with ID {2} received.",
+                        Parameters = new object[] {ModuleName, request.Method, request.Id},
+                        Properties = {{"service", ModuleName}, {"method", request.Method}, {"RequestID", request.Id}}
+                    });
+
                     if (_logger.IsTraceEnabled) {
-                        _logger.Trace("Processing request. Service [{0}]. Body {1}", ModuleName, content);
+                        _logger.Trace("Processing request. Service [{0}]. Method {1}", ModuleName, request.Method);
                     }
 
                     MethodInvoker handle;
@@ -49,27 +74,39 @@ namespace JRPC.Service {
                             Error = new JRpcException("Method not found. The method does not exist / is not available.", ModuleInfo, methodName),
                             Id = request.Id
                         };
-                        return SerializeResponse(context.Response, response);
+                        SerializeResponse(context.Response, response);
+                    } else {
+                        try {
+                            var resp = new JRpcResponse {
+                                Id = request.Id,
+                                Result = handle.Invoke(this, request.Params as JToken)
+                            };
+                            _logger.Log(new LogEventInfo {
+                                Level = LogLevel.Debug,
+                                LoggerName = _logger.Name,
+                                Message = "Response by {0}.{1} with ID {2} sent.",
+                                Parameters = new object[] {ModuleName, request.Method, request.Id},
+                                Properties = {{"service", ModuleName}, {"method", request.Method}, {"RequestID", request.Id}}
+                            });
+
+                            SerializeResponse(context.Response, resp);
+                        } catch (Exception ex) {
+                            var newEx = new JRpcException(ex, ModuleInfo, methodName);
+                            var response = new JRpcResponse {
+                                Result = null,
+                                Error = newEx,
+                                Id = request.Id
+                            };
+                            _logger.Error("Error occurred during method invocation.", newEx);
+                            SerializeResponse(context.Response, response);
+                        }
                     }
-                    try {
-                        var resp = new JRpcResponse {
-                            Id = request.Id,
-                            Result = handle.Invoke(this, request.Params)
-                        };
-                        return SerializeResponse(context.Response, resp);
-                    } catch (Exception ex) {
-                        var response = new JRpcResponse {
-                            Result = null,
-                            Error = new JRpcException(ex, ModuleInfo, methodName),
-                            Id = request.Id
-                        };
-                        return SerializeResponse(context.Response, response);
-                    }
+                    return Task.FromResult(0);
                 };
             }
         }
 
-        protected virtual IList<JsonConverter> JsonConverters { get { return new JsonConverter[0]; } }
+        protected virtual IList<JsonConverter> JsonConverters => new JsonConverter[0];
 
         protected virtual JsonSerializerSettings GetSerializerSettings() {
             return new JsonSerializerSettings {
@@ -81,45 +118,46 @@ namespace JRPC.Service {
 
         protected JRpcModule() {
             _jsonSerializerSettings = GetSerializerSettings();
+            _jsonSerializer = JsonSerializer.Create(_jsonSerializerSettings);
             BuildService();
             _buildTime = GetLinkerTime(GetType().Assembly);
         }
 
-        private Task SerializeResponse(IOwinResponse response, JRpcResponse rpcResponse) {
-            var str = JsonConvert.SerializeObject(rpcResponse, _jsonSerializerSettings);
+        private void SerializeResponse(IOwinResponse response, JRpcResponse rpcResponse) {
             response.ContentType = "application/json";
-            return response.WriteAsync(str);
+            using (var jw = new JsonTextWriter(new StreamWriter(response.Body))) {
+                var serializer = JsonSerializer.Create(_jsonSerializerSettings);
+                serializer.Serialize(jw, rpcResponse);
+            }
         }
 
         private void BuildService() {
             var type = GetType();
             var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance).OrderByDescending(t => t.DeclaringType == type);
             var interfaces = type.GetInterfaces();
-            
+
             var serialiser = JsonSerializer.Create(_jsonSerializerSettings);
 
             var duplicateMethod = methods.GroupBy(t => Tuple.Create(t.Name, t.DeclaringType)).FirstOrDefault(t => t.Count() > 1);
             if (duplicateMethod != null) {
                 var methodInfo = duplicateMethod.ToList().First();
-                throw new JRpcException($"method with name {methodInfo.Name} already exist in type {type}", ModuleInfo, methodInfo.Name);
+                throw new JRpcException($"Method with name {methodInfo.Name} already exist in type {type}", ModuleInfo, methodInfo.Name);
             }
             var methodInfos = interfaces.SelectMany(
-                i => i.GetMethods(BindingFlags.Public | BindingFlags.Instance)).ToList()
-                .GroupBy(t => t.Name.ToLower());
+                    i => i.GetMethods(BindingFlags.Public | BindingFlags.Instance)).ToList()
+                .GroupBy(t => t.Name.ToLower()).ToList();
 
             var duplicateInterfaceMethod = methodInfos.FirstOrDefault(t => t.Count() > 1);
             if (duplicateInterfaceMethod != null) {
                 var methodInfo = duplicateInterfaceMethod.ToList().First();
-                throw new JRpcException($"method with name {methodInfo.Name} already  exist in interfaces {type}", ModuleInfo, methodInfo.Name);
+                throw new JRpcException($"Method with name {methodInfo.Name} already exist in interfaces {type}", ModuleInfo, methodInfo.Name);
             }
 
-
-            Dictionary<string, MethodInfo> interfaceMethodsMap = methodInfos
-                .ToDictionary(t => t.Key, t => t.OrderByDescending(s => s.DeclaringType == type).FirstOrDefault());
+            var interfaceMethodsMap = methodInfos.ToDictionary(t => t.Key, t => t.OrderByDescending(s => s.DeclaringType == type).FirstOrDefault());
 
             foreach (var method in methods.OrderByDescending(t => t.DeclaringType == type)) {
-                var attribute = method.GetCustomAttributes(typeof (JRpcMethodAttribute), false).SingleOrDefault() as JRpcMethodAttribute;
-                var methodName = attribute != null && !string.IsNullOrWhiteSpace(attribute.MethodName)
+                var attribute = method.GetCustomAttributes(typeof(JRpcMethodAttribute), false).SingleOrDefault() as JRpcMethodAttribute;
+                var methodName = !string.IsNullOrWhiteSpace(attribute?.MethodName)
                     ? attribute.MethodName.ToLower()
                     : method.Name.ToLower();
 
@@ -152,5 +190,7 @@ namespace JRPC.Service {
 
             return TimeZoneInfo.ConvertTimeFromUtc(linkTimeUtc, TimeZoneInfo.Local);
         }
+
     }
+
 }

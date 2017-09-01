@@ -7,6 +7,10 @@ namespace JRPC.Core {
     public class JRpcException : ApplicationException {
 
         private readonly string _stacktrace;
+        
+        public JRpcException(string message) {
+            this.message = message;
+        }
 
         [JsonConstructor]
         public JRpcException(string message, string stackTrace) {

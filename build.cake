@@ -5,7 +5,7 @@
 
 var target = Argument("target", "Default");
 var configuration = Argument("configuration", "Release");
-var version = Argument("version", "1.1.3");
+var version = Argument("version", "1.1.10");
 
 //////////////////////////////////////////////////////////////////////
 // PREPARATION
@@ -19,23 +19,39 @@ var outputPackages = output + Directory("packages");
 var outputNuGet = output + Directory("nuget");
 var outputPack = output + Directory("pack");
 
+var solutionFile = "./IDEV.JRPC.sln";
+var solution = new Lazy<SolutionParserResult>(() => ParseSolution(solutionFile));
+var distDir = Directory("./nuget");
+
 //var buildDir = Directory("./src/Example/bin") + Directory(configuration);
 
 //////////////////////////////////////////////////////////////////////
 // TASKS
 //////////////////////////////////////////////////////////////////////
 
+
+
 Task("Clean")
-    .Does(() =>
-{
-    ///CleanDirectory(buildDir);
-});
+	.IsDependentOn("Clean-Outputs")
+	.Does(() => 
+	{
+		DotNetBuild(solutionFile, settings => settings
+			.SetConfiguration(configuration)
+			.WithTarget("Clean")
+			.SetVerbosity(Verbosity.Minimal));
+	});
+
+Task("Clean-Outputs")
+	.Does(() => 
+	{
+		CleanDirectory(outputNuGet);
+	});
 
 Task("Restore-NuGet-Packages")
     .IsDependentOn("Clean")
     .Does(() =>
 {
-    NuGetRestore("./IDEV.JRPC.sln");
+    NuGetRestore(solutionFile);
 });
 
 Task("Build")
@@ -45,13 +61,13 @@ Task("Build")
     if(IsRunningOnWindows())
     {
       // Use MSBuild
-      MSBuild("./IDEV.JRPC.sln", settings =>
+      MSBuild(solutionFile, settings =>
         settings.SetConfiguration(configuration));
     }
     else
     {
       // Use XBuild
-      XBuild("./IDEV.JRPC.sln", settings =>
+      XBuild(solutionFile, settings =>
         settings.SetConfiguration(configuration));
     }
 });
@@ -60,8 +76,11 @@ Task("Run-Unit-Tests")
     .IsDependentOn("Build")
     .Does(() =>
 {
-    NUnit3("./src/**/bin/" + configuration + "/*.Tests.dll", new NUnit3Settings {
-        NoResults = true
+    var testAssemblies = GetFiles("./src/**/bin/" + configuration + "/*Tests.dll");
+    NUnit3(testAssemblies, new NUnit3Settings {
+            NoResults = true,
+		    Configuration = configuration,
+		    Full = true
         });
 });
 

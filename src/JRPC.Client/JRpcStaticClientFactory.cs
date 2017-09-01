@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using JRPC.Core.Security;
 using Newtonsoft.Json;
@@ -11,16 +12,14 @@ namespace JRPC.Client {
         private static readonly ConcurrentDictionary<Tuple<string, string, Type>, object> _proxiesCache = new ConcurrentDictionary<Tuple<string, string, Type>, object>();
 
         //NOTE: НЕ УДАЛЯТЬ, т.к. используется рефлексией
-        private static object Invoke<TResult>(
+        public static object Invoke<TResult>(
             IJRpcClient client,
             string taskName,
             string methodName,
-            string parametersStr,
+            Dictionary<string, object> parametersStr,
             JsonSerializerSettings jsonSerializerSettings,
             IAbstractCredentials credentials) {
-            return client.Call(taskName, methodName, parametersStr, credentials)
-                .AfterSuccess(r =>
-                    JsonConvert.DeserializeObject<TResult>(r, jsonSerializerSettings));
+            return client.Call<TResult>(taskName, methodName, parametersStr, credentials);
         }
 
         public static T Get<T>(IJRpcClient client, string taskName, string cacheKey, JsonSerializerSettings jsonSerializerSettings, IAbstractCredentials credentials) where T : class {

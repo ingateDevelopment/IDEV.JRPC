@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -9,11 +11,15 @@ using JRPC.Core.Security;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
+using NLog;
 
 namespace JRPC.Client {
 
     public class JRpcClient : IJRpcClient {
 
+        private const string Method = "POST";
+
+        private static Logger _logger = LogManager.GetCurrentClassLogger();
         private readonly string _endpoint;
         private readonly TimeSpan _timeout;
         private readonly JsonSerializerSettings _jsonSerializerSettings;
@@ -40,14 +46,8 @@ namespace JRPC.Client {
             _jsonSerializerSettings = jsonSerializerSettings;
         }
 
-        //TODO: удалить метод
-        public Task<string> Call(string name, string method, string parameters, IAbstractCredentials credentials) {
-            return InvokeRequest(GetEndPoint(name), method,
-                JsonConvert.DeserializeObject(parameters, _jsonSerializerSettings), credentials);
-        }
-
-        public Task<TResult> Call<TResult>(string name, string method, object parameters, IAbstractCredentials credentials) {
-            return InvokeRequest<TResult>(GetEndPoint(name), method, parameters, credentials);
+        public Task<TResult> Call<TResult>(string name, string method, Dictionary<string, object> parameters, IAbstractCredentials credentials) {
+            return Task.FromResult(InvokeRequest<TResult>(name, method, parameters, credentials));
         }
 
         public T GetProxy<T>(string taskName) where T : class {
@@ -65,36 +65,51 @@ namespace JRPC.Client {
                        : "/") + name;
         }
 
-        private async Task<T> InvokeRequest<T>(string url, string method, object data, IAbstractCredentials credentials) {
-            return JsonConvert.DeserializeObject<T>(await InvokeRequest(url, method, data, credentials).ConfigureAwait(false),
-                _jsonSerializerSettings);
+        private T InvokeRequest<T>(string url, string method, object data, IAbstractCredentials credentials) {
+            var respData = InvokeRequest(url, method, data, credentials);
+            if (respData == null) {
+                return default(T);
+            }
+            var tmp = JToken.FromObject(respData);
+            return tmp.ToObject<T>();
         }
 
-        private async Task<string> InvokeRequest(string service, string method, object data, IAbstractCredentials credentials) {
-            var id = new Random().Next();
+        private object InvokeRequest(string service, string method, object data, IAbstractCredentials credentials) {
+            var id = Guid.NewGuid().ToString();
 
             var request = new JRpcRequest {
                 Id = id,
-                Method = method.ToLowerInvariant(),
-                Params = JToken.FromObject(data),
+                Method = method,
+                Params = data,
             };
 
-            var content = await HttpAsyncRequest("POST",
-                "application/json",
-                service,
-                JsonConvert.SerializeObject(request, _jsonSerializerSettings),
-                _timeout, credentials).ConfigureAwait(false);
-            if (string.IsNullOrWhiteSpace(content)) {
-                throw new Exception("Не получили ответ от сервиса " + service);
-            }
+            _logger.Log(new LogEventInfo {
+                Level = LogLevel.Debug,
+                LoggerName = _logger.Name,
+                Message = "Request for {0}.{1} with ID {2} sent.",
+                Parameters = new object[] {service, method, id},
+                Properties = {{"service", service}, {"method", method}, {"RequestID", id}, {"Process", Process.GetCurrentProcess().ProcessName}}
+            });
 
-            var jsonresponse = JsonConvert.DeserializeObject<JRpcResponse>(content, _jsonSerializerSettings);
+            var jsonresponse = HttpAsyncRequest(Method,
+                "application/json",
+                GetEndPoint(service),
+                request,
+                _timeout, credentials).Result;
+
+            _logger.Log(new LogEventInfo {
+                Level = LogLevel.Debug,
+                LoggerName = _logger.Name,
+                Message = "Response for {0}.{1} with ID {2} received.",
+                Parameters = new object[] {service, method, jsonresponse.Id},
+                Properties = {{"service", service}, {"method", method}, {"RequestID", jsonresponse.Id}, {"Process", Process.GetCurrentProcess().ProcessName}}
+            });
 
             if (jsonresponse.Error != null) {
                 throw jsonresponse.Error;
             }
 
-            return JsonConvert.SerializeObject(jsonresponse.Result, _jsonSerializerSettings);
+            return jsonresponse.Result;
         }
 
         /// <summary>
@@ -103,12 +118,12 @@ namespace JRPC.Client {
         /// <param name="method"></param>
         /// <param name="contentType"></param>
         /// <param name="url"></param>
-        /// <param name="requestBody"></param>
+        /// <param name="jRpcRequest"></param>
         /// <param name="timeout"></param>
         /// <param name="credentials"></param>
         /// <returns></returns>
-        private static async Task<string> HttpAsyncRequest(string method, string contentType, string url,
-            string requestBody, TimeSpan timeout, IAbstractCredentials credentials) {
+        private async Task<JRpcResponse> HttpAsyncRequest(string method, string contentType, string url,
+            JRpcRequest jRpcRequest, TimeSpan timeout, IAbstractCredentials credentials) {
             var request = (HttpWebRequest) WebRequest.Create(url);
             if (request.ServicePoint.ConnectionLimit < 100) {
                 request.ServicePoint.ConnectionLimit = 100;
@@ -125,11 +140,12 @@ namespace JRPC.Client {
                 request.Headers.Add(HttpRequestHeader.Authorization, credentials.GetHeaderValue());
             }
 
-            if (requestBody != null) {
-                var bytes = Encoding.UTF8.GetBytes(requestBody);
-                request.ContentLength = bytes.Length;
-                using (var requestStream = await request.GetRequestStreamAsync().ConfigureAwait(false)) {
-                    await requestStream.WriteAsync(bytes, 0, bytes.Length).ConfigureAwait(false);
+            var serializer = JsonSerializer.Create(_jsonSerializerSettings);
+
+            if (jRpcRequest != null) {
+                using (var streamWriter = new JsonTextWriter(new StreamWriter(await request.GetRequestStreamAsync().ConfigureAwait(false)))) {
+                    serializer.Serialize(streamWriter, jRpcRequest);
+                    streamWriter.Flush();
                 }
             }
 
@@ -145,35 +161,18 @@ namespace JRPC.Client {
                     response = null;
                 }
             } catch (TimeoutException ex) {
+                _logger.Error("Timeout occurred during service invocation.", ex);
                 response = null;
             }
-
-            using (response) {
-                var responceBytes = response != null
-                    ? ReadBytesToEnd(response.GetResponseStream())
-                    : new byte[0];
-                var responceString = Encoding.UTF8.GetString(responceBytes);
-                return responceString;
+            var stream = response?.GetResponseStream();
+            if (stream == null) {
+                throw new Exception($"Response from {url} is empty.");
             }
-        }
 
-        /// <summary>
-        /// Читаем из потока все байты
-        /// </summary>
-        /// <param name="stream">Поток</param>
-        /// <returns>Массив прочтенных байтов</returns>
-        /// <remarks>Внимание! поток будет закрыт!</remarks>
-        public static byte[] ReadBytesToEnd(Stream stream) {
-            //Размер блока читаемого из потока, в байтах
-            const int BYTE_BLOCK_SIZE = 102400;
-
-            var buffer = new byte[BYTE_BLOCK_SIZE];
-            using (var ms = new MemoryStream()) {
-                int read;
-                while ((read = stream.Read(buffer, 0, buffer.Length)) > 0) {
-                    ms.Write(buffer, 0, read);
+            using (var sr = new StreamReader(stream)) {
+                using (var jsonTextReader = new JsonTextReader(sr)) {
+                    return serializer.Deserialize<JRpcResponse>(jsonTextReader);
                 }
-                return ms.ToArray();
             }
         }
 
