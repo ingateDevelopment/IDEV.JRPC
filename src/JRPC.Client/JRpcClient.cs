@@ -46,11 +46,6 @@ namespace JRPC.Client {
             _jsonSerializerSettings = jsonSerializerSettings;
         }
 
-        //TODO: удалить метод
-        //public Task<string> Call(string name, string method, Dictionary<string, object> parameters, IAbstractCredentials credentials) {
-        //    return InvokeRequest(name, method, parameters, credentials);
-        //}
-
         public Task<TResult> Call<TResult>(string name, string method, Dictionary<string, object> parameters, IAbstractCredentials credentials) {
             return Task.FromResult(InvokeRequest<TResult>(name, method, parameters, credentials));
         }
@@ -170,11 +165,14 @@ namespace JRPC.Client {
                 response = null;
             }
             var stream = response?.GetResponseStream();
-            if (stream == null) throw new Exception($"Response from {url} is empty.");
+            if (stream == null) {
+                throw new Exception($"Response from {url} is empty.");
+            }
 
-            using (var sr = new StreamReader(stream))
-            using (var jsonTextReader = new JsonTextReader(sr)) {
-                return serializer.Deserialize<JRpcResponse>(jsonTextReader);
+            using (var sr = new StreamReader(stream)) {
+                using (var jsonTextReader = new JsonTextReader(sr)) {
+                    return serializer.Deserialize<JRpcResponse>(jsonTextReader);
+                }
             }
         }
 
