@@ -91,6 +91,9 @@ namespace JRPC.Service {
 
                             SerializeResponse(context.Response, resp);
                         } catch (Exception ex) {
+                            while (ex is AggregateException){
+                                ex = (ex as AggregateException).InnerException;
+                            }
                             var newEx = new JRpcException(ex, ModuleInfo, methodName);
                             var response = new JRpcResponse {
                                 Result = null,

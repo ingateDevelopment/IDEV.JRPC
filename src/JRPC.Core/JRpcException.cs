@@ -21,18 +21,30 @@ namespace JRPC.Core {
         public JRpcException(Exception exception, string moduleInfo, string method) {
             var remoteException = exception as JRpcException;
             message = remoteException != null ? remoteException.message : exception.GetType().Name + ": " + exception.Message;
+            code = remoteException != null ? remoteException.code : exception.HResult;
             var stackTrace = remoteException != null ? remoteException.stacktrace : exception.StackTrace;
             _stacktrace = stackTrace + $"\r\n\r\n<---- handled by {moduleInfo}, {method}";
         }
+
+        public JRpcException(Exception exception, string moduleInfo, string method, int errorCode) : this(exception, moduleInfo, method) {
+            code = errorCode;
+        }
+
 
         public JRpcException(string message, string moduleInfo, string method) {
             this.message = message;
             _stacktrace = $"\r\n\r\n<---- handled by {moduleInfo}, {method}";
         }
 
+        public JRpcException() {
+        }
+
 
         [JsonProperty]
         public string message { get; set; }
+        [JsonProperty]
+        public int code { get; set; }
+
 
 
         [JsonProperty]
