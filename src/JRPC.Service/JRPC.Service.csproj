@@ -53,13 +53,11 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\packages\Consul.0.7.2.0\lib\net45\Consul.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Owin, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Owin.3.0.1\lib\net45\Microsoft.Owin.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Microsoft.Owin, Version=3.1.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
+      <HintPath>..\..\packages\Microsoft.Owin.3.1.0\lib\net45\Microsoft.Owin.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Owin.Host.HttpListener, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Microsoft.Owin.Host.HttpListener.3.0.1\lib\net45\Microsoft.Owin.Host.HttpListener.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Microsoft.Owin.Host.HttpListener, Version=3.1.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
+      <HintPath>..\..\packages\Microsoft.Owin.Host.HttpListener.3.1.0\lib\net45\Microsoft.Owin.Host.HttpListener.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Owin.Hosting, Version=3.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Microsoft.Owin.Hosting.3.0.1\lib\net45\Microsoft.Owin.Hosting.dll</HintPath>
@@ -77,9 +75,36 @@
       <HintPath>..\..\packages\Owin.1.0\lib\net40\Owin.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="prometheus-net, Version=1.3.4.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\..\packages\prometheus-net.1.3.5\lib\net45\prometheus-net.dll</HintPath>
+    </Reference>
+    <Reference Include="prometheus-net.owin, Version=0.0.11.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\..\packages\PrometheusNet.Owin.0.0.11\lib\net45\prometheus-net.owin.dll</HintPath>
+    </Reference>
+    <Reference Include="protobuf-net, Version=2.2.1.0, Culture=neutral, PublicKeyToken=257b51d87d2e4d67">
+      <HintPath>..\..\packages\protobuf-net.2.2.1\lib\net40\protobuf-net.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Net.Http.WebRequest" />
+    <Reference Include="System.Reactive, Version=4.0.0.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263">
+      <HintPath>..\..\packages\System.Reactive.4.0.0-preview00001\lib\net45\System.Reactive.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Core, Version=3.0.1000.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263">
+      <HintPath>..\..\packages\prometheus-net.1.3.5\lib\net45\System.Reactive.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Interfaces, Version=3.0.1000.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263">
+      <HintPath>..\..\packages\prometheus-net.1.3.5\lib\net45\System.Reactive.Interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Linq, Version=3.0.1000.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263">
+      <HintPath>..\..\packages\prometheus-net.1.3.5\lib\net45\System.Reactive.Linq.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.PlatformServices, Version=3.0.1000.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263">
+      <HintPath>..\..\packages\prometheus-net.1.3.5\lib\net45\System.Reactive.PlatformServices.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Windows.Threading, Version=3.0.1000.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263">
+      <HintPath>..\..\packages\prometheus-net.1.3.5\lib\net45\System.Reactive.Windows.Threading.dll</HintPath>
+    </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />

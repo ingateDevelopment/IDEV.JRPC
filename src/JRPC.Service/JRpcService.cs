@@ -11,6 +11,8 @@ using Microsoft.Owin.Hosting;
 using NLog;
 using Owin;
 using JRPC.Service.Registry;
+using Prometheus;
+using Prometheus.Owin;
 
 namespace JRPC.Service {
 
@@ -19,7 +21,8 @@ namespace JRPC.Service {
         private const int DefaultStartPort = 5678;
         private const int DefaultEndPort = 60000;
         private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
-
+        private readonly Gauge _counter = Metrics.CreateGauge("requests", "help text", labelNames: new[] {"module"});
+        
         private readonly IModulesRegistry _modulesRegistry;
         private readonly IConsulClient _consulClient;
         private readonly List<string> _registeredConsulIds = new List<string>();
@@ -79,22 +82,25 @@ namespace JRPC.Service {
             string url = "http://" + address + ":" + port + "/";
             try {
                 _server = WebApp.Start(new StartOptions(url) {
-                    ServerFactory = typeof(Microsoft.Owin.Host.HttpListener.OwinHttpListener).Namespace
-                }, app => app.Run(context => {
-                    if (context.Request.Path.HasValue) {
-                        var path = context.Request.Path.Value.TrimStart('/');
-                        JRpcModule module;
-                        if (services.TryGetValue(path, out module)) {
-                            if (context.Request.Method == "POST") {
-                                return module.ProcessRequest(context);
+                    ServerFactory = typeof(Microsoft.Owin.Host.HttpListener.OwinHttpListener).Namespace,
+                }, app => {
+                    app.UsePrometheusServer();
+                    app.Run(context => {
+                        if (context.Request.Path.HasValue) {
+                            var path = context.Request.Path.Value.TrimStart('/');
+                            JRpcModule module;
+                            if (services.TryGetValue(path, out module)) {
+                                if (context.Request.Method == "POST") {
+                                    return module.ProcessRequest(context);
+                                }
+                                return module.PrintInfo(context);
                             }
-                            return module.PrintInfo(context);
                         }
-                    }
 
-                    context.Response.StatusCode = (int) HttpStatusCode.NotFound;
-                    return context.Response.WriteAsync(string.Empty);
-                }));
+                        context.Response.StatusCode = (int) HttpStatusCode.NotFound;
+                        return context.Response.WriteAsync(string.Empty);
+                    });
+                });
                 return true;
             } catch (TargetInvocationException e) {
                 if (e.InnerException is HttpListenerException) {
