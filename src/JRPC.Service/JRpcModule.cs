@@ -10,6 +10,7 @@ using Newtonsoft.Json.Serialization;
 using NLog;
 using JRPC.Core;
 using Newtonsoft.Json.Linq;
+using Prometheus;
 
 namespace JRPC.Service {
 
@@ -18,6 +19,10 @@ namespace JRPC.Service {
         private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
         private readonly Dictionary<string, MethodInvoker> _handlers = new Dictionary<string, MethodInvoker>();
 
+        private readonly Counter _counter = Metrics.CreateCounter("total_requests", "help text", labelNames: new[] {"module", "method"});
+        private readonly Gauge _gauge = Metrics.CreateGauge("active_requests", "help text", labelNames: new[] {"module", "method"});
+        private readonly Summary _hist = Metrics.CreateSummary("requests_duration_seconds", "help text", labelNames: new[] {"module", "method"});
+
         private readonly JsonSerializerSettings _jsonSerializerSettings;
 
         public virtual string ModuleName => GetType().Name;
@@ -25,7 +30,7 @@ namespace JRPC.Service {
         public string BindingUrl { get; set; }
 
         private readonly DateTime _buildTime;
-        private JsonSerializer _jsonSerializer;
+        private readonly JsonSerializer _jsonSerializer;
 
         public Func<IOwinContext, Task> PrintInfo {
             get { return (context) => Task.FromResult(ModuleInfo); }
@@ -36,6 +41,8 @@ namespace JRPC.Service {
         public Func<IOwinContext, Task> ProcessRequest {
             get {
                 return (context) => {
+                    
+
                     JRpcRequest request = null;
                     using (var reader = new JsonTextReader(new StreamReader(context.Request.Body))) {
                         request = _jsonSerializer.Deserialize<JRpcRequest>(reader);
@@ -51,6 +58,10 @@ namespace JRPC.Service {
                         SerializeResponse(context.Response, response);
                         return Task.FromResult(0);
                     }
+                    
+                    var watch = System.Diagnostics.Stopwatch.StartNew();
+                    _counter.Labels(ModuleName, request.Method).Inc();
+                    _gauge.Labels(ModuleName, request.Method).Inc();
 
                     _logger.Log(new LogEventInfo {
                         Level = LogLevel.Debug,
@@ -91,7 +102,7 @@ namespace JRPC.Service {
 
                             SerializeResponse(context.Response, resp);
                         } catch (Exception ex) {
-                            while (ex is AggregateException){
+                            while (ex is AggregateException) {
                                 ex = (ex as AggregateException).InnerException;
                             }
                             var newEx = new JRpcException(ex, ModuleInfo, methodName);
@@ -104,6 +115,10 @@ namespace JRPC.Service {
                             SerializeResponse(context.Response, response);
                         }
                     }
+                    _gauge.Labels(ModuleName, request.Method).Dec();
+                    watch.Stop();
+                    var elapsedMs = watch.ElapsedMilliseconds / 1000.0;
+                    _hist.Labels(ModuleName, request.Method).Observe(elapsedMs);
                     return Task.FromResult(0);
                 };
             }
@@ -143,16 +158,16 @@ namespace JRPC.Service {
 
             var duplicateMethod = methods.GroupBy(t => Tuple.Create(t.Name, t.DeclaringType)).FirstOrDefault(t => t.Count() > 1);
             if (duplicateMethod != null) {
-                var methodInfo = duplicateMethod.ToList().First();
+                var methodInfo = duplicateMethod.First();
                 throw new JRpcException($"Method with name {methodInfo.Name} already exist in type {type}", ModuleInfo, methodInfo.Name);
             }
             var methodInfos = interfaces.SelectMany(
-                    i => i.GetMethods(BindingFlags.Public | BindingFlags.Instance)).ToList()
+                    i => i.GetMethods(BindingFlags.Public | BindingFlags.Instance))
                 .GroupBy(t => t.Name.ToLower()).ToList();
 
             var duplicateInterfaceMethod = methodInfos.FirstOrDefault(t => t.Count() > 1);
             if (duplicateInterfaceMethod != null) {
-                var methodInfo = duplicateInterfaceMethod.ToList().First();
+                var methodInfo = duplicateInterfaceMethod.First();
                 throw new JRpcException($"Method with name {methodInfo.Name} already exist in interfaces {type}", ModuleInfo, methodInfo.Name);
             }
 
