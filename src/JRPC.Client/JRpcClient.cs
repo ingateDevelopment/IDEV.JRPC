@@ -3,39 +3,31 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 using JRPC.Client.Extensions;
 using JRPC.Core;
 using JRPC.Core.Security;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using NLog;
 
 namespace JRPC.Client {
 
     public class JRpcClient : IJRpcClient {
+        private const string METHOD = "POST";
 
-        private const string Method = "POST";
-
-        private static Logger _logger = LogManager.GetCurrentClassLogger();
+        private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
         private readonly string _endpoint;
         private readonly TimeSpan _timeout;
         private readonly JsonSerializerSettings _jsonSerializerSettings;
 
-        public JRpcClient()
-            : this("http://localhost:12345") {
-        }
+        public JRpcClient() : this("http://localhost:12345") { }
 
-        public JRpcClient(string endpoint)
-            : this(
-                endpoint, new JsonSerializerSettings() {ContractResolver = new DefaultContractResolver()}
-            ) {
-        }
+        public JRpcClient(string endpoint) : this(endpoint,
+            new JsonSerializerSettings {ContractResolver = new DefaultContractResolver()}) { }
 
-        public JRpcClient(string endpoint, JsonSerializerSettings jsonSerializerSettings)
-            : this(endpoint, TimeSpan.FromHours(1), jsonSerializerSettings) {
+        public JRpcClient(string endpoint, JsonSerializerSettings jsonSerializerSettings) : this(endpoint,
+            TimeSpan.FromHours(1), jsonSerializerSettings) {
             _endpoint = endpoint;
             _jsonSerializerSettings = jsonSerializerSettings;
         }
@@ -65,16 +57,7 @@ namespace JRPC.Client {
                        : "/") + name;
         }
 
-        private T InvokeRequest<T>(string url, string method, object data, IAbstractCredentials credentials) {
-            var respData = InvokeRequest(url, method, data, credentials);
-            if (respData == null) {
-                return default(T);
-            }
-            var tmp = JToken.FromObject(respData);
-            return tmp.ToObject<T>();
-        }
-
-        private object InvokeRequest(string service, string method, object data, IAbstractCredentials credentials) {
+        private T InvokeRequest<T>(string service, string method, object data, IAbstractCredentials credentials) {
             var id = Guid.NewGuid().ToString();
 
             var request = new JRpcRequest {
@@ -91,17 +74,14 @@ namespace JRPC.Client {
                 Properties = {{"service", service}, {"method", method}, {"RequestID", id}, {"Process", Process.GetCurrentProcess().ProcessName}}
             });
 
-            var jsonresponse = HttpAsyncRequest(Method,
-                "application/json",
-                GetEndPoint(service),
-                request,
-                _timeout, credentials).Result;
+            var jsonresponse = HttpAsyncRequest<T>(METHOD, "application/json", GetEndPoint(service), request, _timeout,
+                credentials).Result;
 
             _logger.Log(new LogEventInfo {
                 Level = LogLevel.Debug,
                 LoggerName = _logger.Name,
                 Message = "Response for {0}.{1} with ID {2} received.",
-                Parameters = new object[] {service, method, jsonresponse.Id},
+                Parameters = new[] {service, method, jsonresponse.Id},
                 Properties = {{"service", service}, {"method", method}, {"RequestID", jsonresponse.Id}, {"Process", Process.GetCurrentProcess().ProcessName}}
             });
 
@@ -109,7 +89,11 @@ namespace JRPC.Client {
                 throw jsonresponse.Error;
             }
 
-            return jsonresponse.Result;
+            var result = jsonresponse.Result;
+            if (result == null) {
+                return default(T);
+            }
+            return result;
         }
 
         /// <summary>
@@ -122,12 +106,13 @@ namespace JRPC.Client {
         /// <param name="timeout"></param>
         /// <param name="credentials"></param>
         /// <returns></returns>
-        private async Task<JRpcResponse> HttpAsyncRequest(string method, string contentType, string url,
+        private async Task<JRpcResponse<T>> HttpAsyncRequest<T>(string method, string contentType, string url,
             JRpcRequest jRpcRequest, TimeSpan timeout, IAbstractCredentials credentials) {
             var request = (HttpWebRequest) WebRequest.Create(url);
             if (request.ServicePoint.ConnectionLimit < 100) {
                 request.ServicePoint.ConnectionLimit = 100;
             }
+
             request.Method = method;
             request.ContentType = contentType;
             request.KeepAlive = true;
@@ -143,7 +128,8 @@ namespace JRPC.Client {
             var serializer = JsonSerializer.Create(_jsonSerializerSettings);
 
             if (jRpcRequest != null) {
-                using (var streamWriter = new JsonTextWriter(new StreamWriter(await request.GetRequestStreamAsync().ConfigureAwait(false)))) {
+                using (var streamWriter =
+                    new JsonTextWriter(new StreamWriter(await request.GetRequestStreamAsync().ConfigureAwait(false)))) {
                     serializer.Serialize(streamWriter, jRpcRequest);
                     streamWriter.Flush();
                 }
@@ -151,19 +137,20 @@ namespace JRPC.Client {
 
             HttpWebResponse response;
             try {
-                response =
-                    (HttpWebResponse)
-                    await request.GetResponseAsync().WithTimeout(request.Timeout).ConfigureAwait(false);
+                response = (HttpWebResponse) await request.GetResponseAsync()
+                    .WithTimeout(request.Timeout)
+                    .ConfigureAwait(false);
             } catch (WebException ex) {
                 if (ex.Status == WebExceptionStatus.ProtocolError) {
                     response = (HttpWebResponse) ex.Response;
                 } else {
                     response = null;
                 }
-            } catch (TimeoutException ex) {
-                _logger.Error("Timeout occurred during service invocation.", ex);
+            } catch (TimeoutException) {
+                _logger.Error("Timeout occurred during service invocation.");
                 response = null;
             }
+
             var stream = response?.GetResponseStream();
             if (stream == null) {
                 throw new Exception($"Response from {url} is empty.");
@@ -171,11 +158,9 @@ namespace JRPC.Client {
 
             using (var sr = new StreamReader(stream)) {
                 using (var jsonTextReader = new JsonTextReader(sr)) {
-                    return serializer.Deserialize<JRpcResponse>(jsonTextReader);
+                    return serializer.Deserialize<JRpcResponse<T>>(jsonTextReader);
                 }
             }
         }
-
     }
-
 }
