@@ -16,8 +16,9 @@ namespace JRPC.Client {
     public class JRpcClient : IJRpcClient {
         private const string METHOD = "POST";
         private const string DEFAULT_ADDRESS = "http://localhost:12345";
-        //NOTE: если никто не меняет состояние у класса, то может имеет смысл создать один экземпляр static и везде его юзать?
+
         private static TimeSpan DefaultTimeout => TimeSpan.FromHours(1.0);
+        private static JsonSerializerSettings DefaultSettings => new JsonSerializerSettings {ContractResolver = new DefaultContractResolver()};
 
         private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
         private readonly string _endpoint;
@@ -26,8 +27,7 @@ namespace JRPC.Client {
 
         public JRpcClient() : this(DEFAULT_ADDRESS) { }
 
-        public JRpcClient(string endpoint) : this(endpoint,
-            new JsonSerializerSettings {ContractResolver = new DefaultContractResolver()}) { }
+        public JRpcClient(string endpoint) : this(endpoint, DefaultSettings) { }
 
         public JRpcClient(string endpoint, JsonSerializerSettings jsonSerializerSettings) : this(endpoint, DefaultTimeout, jsonSerializerSettings) {
             _endpoint = endpoint;
@@ -167,11 +167,6 @@ namespace JRPC.Client {
 
         #region Упрощенное создание JRpcClient
         
-        //NOTE: если никто не меняет состояние у класса, то может имеет смысл создать один экземпляр static и везде его юзать?
-        private static JsonSerializerSettings DefaultSettings => new JsonSerializerSettings {
-            ContractResolver = new CamelCasePropertyNamesContractResolver()
-        };
-
         /// <summary>
         ///     Создает сервис для подключения
         /// </summary>
