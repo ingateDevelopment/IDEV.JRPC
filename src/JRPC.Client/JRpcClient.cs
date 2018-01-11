@@ -15,19 +15,21 @@ namespace JRPC.Client {
 
     public class JRpcClient : IJRpcClient {
         private const string METHOD = "POST";
+        private const string DEFAULT_ADDRESS = "http://localhost:12345";
+
+        private static TimeSpan DefaultTimeout => TimeSpan.FromHours(1.0);
+        private static JsonSerializerSettings DefaultSettings => new JsonSerializerSettings {ContractResolver = new DefaultContractResolver()};
 
         private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
         private readonly string _endpoint;
         private readonly TimeSpan _timeout;
         private readonly JsonSerializerSettings _jsonSerializerSettings;
 
-        public JRpcClient() : this("http://localhost:12345") { }
+        public JRpcClient() : this(DEFAULT_ADDRESS) { }
 
-        public JRpcClient(string endpoint) : this(endpoint,
-            new JsonSerializerSettings {ContractResolver = new DefaultContractResolver()}) { }
+        public JRpcClient(string endpoint) : this(endpoint, DefaultSettings) { }
 
-        public JRpcClient(string endpoint, JsonSerializerSettings jsonSerializerSettings) : this(endpoint,
-            TimeSpan.FromHours(1), jsonSerializerSettings) {
+        public JRpcClient(string endpoint, JsonSerializerSettings jsonSerializerSettings) : this(endpoint, DefaultTimeout, jsonSerializerSettings) {
             _endpoint = endpoint;
             _jsonSerializerSettings = jsonSerializerSettings;
         }
@@ -162,5 +164,86 @@ namespace JRPC.Client {
                 }
             }
         }
+
+        #region Упрощенное создание JRpcClient
+        
+        /// <summary>
+        ///     Создает сервис для подключения
+        /// </summary>
+        /// <typeparam name="TService"></typeparam>
+        /// <param name="serviceName"></param>
+        /// <param name="address"></param>
+        /// <returns></returns>
+        public static TService Create<TService>(string serviceName, string address = DEFAULT_ADDRESS) where TService : class {
+            return Create<TService>(serviceName, DefaultTimeout, DefaultSettings, address);
+        }
+
+        /// <summary>
+        ///     Создает сервис для подключения
+        /// </summary>
+        /// <typeparam name="TService"></typeparam>
+        /// <param name="serviceName"></param>
+        /// <param name="timeout">таймаут</param>
+        /// <param name="settings">настройки</param>
+        /// <param name="address"></param>
+        /// <returns></returns>
+        public static TService Create<TService>(string serviceName, TimeSpan timeout, JsonSerializerSettings settings, 
+            string address = DEFAULT_ADDRESS) where TService : class {
+
+            var client = new JRpcClient(address, timeout, settings);
+            return client.GetProxy<TService>(serviceName);
+        }
+
+        /// <summary>
+        ///     Создает сервис для подключения. Имя сервиса будет TService(и отрежет I букву вначале если с нее начинается)
+        /// </summary>
+        /// <typeparam name="TService"></typeparam>
+        /// <param name="address"></param>
+        /// <returns></returns>
+        public static TService Create<TService>(string address = DEFAULT_ADDRESS) where TService : class {
+            return Create<TService>(DefaultTimeout, DefaultSettings, address);
+        }
+
+        /// <summary>
+        ///     Создает сервис для подключения. Имя сервиса будет TService(и отрежет I букву вначале если с нее начинается)
+        /// </summary>
+        /// <typeparam name="TService"></typeparam>
+        /// <param name="timeout"></param>
+        /// <param name="address"></param>
+        /// <returns></returns>
+        public static TService Create<TService>(TimeSpan timeout, string address = DEFAULT_ADDRESS) where TService : class {
+            return Create<TService>(timeout, DefaultSettings, address);
+        }
+
+        /// <summary>
+        ///     Создает сервис для подключения. Имя сервиса будет TService(и отрежет I букву вначале если с нее начинается)
+        /// </summary>
+        /// <typeparam name="TService"></typeparam>
+        /// <param name="settings"></param>
+        /// <param name="address"></param>
+        /// <returns></returns>
+        public static TService Create<TService>(JsonSerializerSettings settings, string address = DEFAULT_ADDRESS) where TService : class {
+            return Create<TService>(DefaultTimeout, settings, address);
+        }
+
+        /// <summary>
+        ///     Создает сервис для подключения. Имя сервиса будет TService(и отрежет I букву вначале если с нее начинается)
+        /// </summary>
+        /// <typeparam name="TService"></typeparam>
+        /// <param name="timeout">таймаут</param>
+        /// <param name="settings">настройки</param>
+        /// <param name="address">адрес</param>
+        /// <returns></returns>
+        public static TService Create<TService>(TimeSpan timeout, JsonSerializerSettings settings, 
+            string address = DEFAULT_ADDRESS) where TService : class {
+            const string PREFIX_TO_START_TRIM = "I";
+
+            var name = typeof(TService).Name;
+            if (name.StartsWith(PREFIX_TO_START_TRIM))
+                name = name.Substring(1);
+            return Create<TService>(name, timeout, settings, address);
+        }
+
+        #endregion
     }
 }
