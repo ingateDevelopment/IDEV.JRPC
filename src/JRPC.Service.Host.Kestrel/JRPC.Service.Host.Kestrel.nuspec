@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package>
+    <metadata>
+        <id>JRPC.Service.Host.Kestrel</id>
+        <version>2.0.0</version>
+        <authors>IDEV</authors>
+        <owners>IDEV</owners>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>Hosting JRPC-service on kestrel</description>
+        <dependencies>
+            <group targetFramework=".NETFramework4.6.2">
+                <dependency id="JRPC.Service" version="2.0.0" exclude="Build,Analyzers" />
+                <dependency id="Microsoft.AspNetCore.Hosting" version="2.0.1" exclude="Build,Analyzers" />
+                <dependency id="Microsoft.AspNetCore.Owin" version="2.0.1" exclude="Build,Analyzers" />
+                <dependency id="Microsoft.AspNetCore.Server.Kestrel" version="2.0.1" exclude="Build,Analyzers" />
+            </group>
+            <group targetFramework=".NETCoreApp2.0">
+                <dependency id="JRPC.Service" version="2.0.0" exclude="Build,Analyzers" />
+                <dependency id="Microsoft.AspNetCore.Hosting" version="2.0.1" exclude="Build,Analyzers" />
+                <dependency id="Microsoft.AspNetCore.Owin" version="2.0.1" exclude="Build,Analyzers" />
+                <dependency id="Microsoft.AspNetCore.Server.Kestrel" version="2.0.1" exclude="Build,Analyzers" />
+            </group>
+            <group targetFramework=".NETStandard2.0">
+                <dependency id="JRPC.Service" version="2.0.0" exclude="Build,Analyzers" />
+                <dependency id="Microsoft.AspNetCore.Hosting" version="2.0.1" exclude="Build,Analyzers" />
+                <dependency id="Microsoft.AspNetCore.Owin" version="2.0.1" exclude="Build,Analyzers" />
+                <dependency id="Microsoft.AspNetCore.Server.Kestrel" version="2.0.1" exclude="Build,Analyzers" />
+            </group>
+        </dependencies>
+    </metadata>
+    <files>
+        <file src="bin\x64\Release\net462\JRPC.Service.Host.Kestrel.dll" target="lib\net462\JRPC.Service.Host.Kestrel.dll" />
+        <file src="bin\x64\Release\netcoreapp2.0\JRPC.Service.Host.Kestrel.dll" target="lib\netcoreapp2.0\JRPC.Service.Host.Kestrel.dll" />
+        <file src="bin\x64\Release\netstandard2.0\JRPC.Service.Host.Kestrel.dll" target="lib\netstandard2.0\JRPC.Service.Host.Kestrel.dll" />
+    </files>
+</package>

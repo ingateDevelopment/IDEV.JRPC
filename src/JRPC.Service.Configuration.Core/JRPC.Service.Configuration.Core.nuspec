@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package>
+    <metadata>
+        <id>JRPC.Service.Configuration.Core</id>
+        <version>2.0.0</version>
+        <authors>IDEV</authors>
+        <owners>IDEV</owners>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>Use netcore configuration provider for jrpc-service</description>
+        <dependencies>
+            <group targetFramework=".NETFramework4.6.1">
+                <dependency id="JRPC.Service" version="2.0.0" exclude="Build,Analyzers" />
+                <dependency id="System.Configuration.ConfigurationManager" version="4.4.1" exclude="Build,Analyzers" />
+            </group>
+            <group targetFramework=".NETCoreApp2.0">
+                <dependency id="JRPC.Service" version="2.0.0" exclude="Build,Analyzers" />
+                <dependency id="System.Configuration.ConfigurationManager" version="4.4.1" exclude="Build,Analyzers" />
+            </group>
+            <group targetFramework=".NETStandard2.0">
+                <dependency id="JRPC.Service" version="2.0.0" exclude="Build,Analyzers" />
+                <dependency id="System.Configuration.ConfigurationManager" version="4.4.1" exclude="Build,Analyzers" />
+            </group>
+        </dependencies>
+    </metadata>
+    <files>
+        <file src="bin\Release\net461\JRPC.Service.Configuration.Core.dll" target="lib\net461\JRPC.Service.Configuration.Core.dll" />
+        <file src="bin\Release\netcoreapp2.0\JRPC.Service.Configuration.Core.dll" target="lib\netcoreapp2.0\JRPC.Service.Configuration.Core.dll" />
+        <file src="bin\Release\netstandard2.0\JRPC.Service.Configuration.Core.dll" target="lib\netstandard2.0\JRPC.Service.Configuration.Core.dll" />
+    </files>
+</package>

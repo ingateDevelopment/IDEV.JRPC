@@ -3,8 +3,9 @@ using System.Configuration;
 using Consul;
 using JRPC.Client;
 using JRPC.Service;
+using JRPC.Service.Configuration.Net45;
+using JRPC.Service.Host.Owin;
 using JRPC.Service.Registry;
-using Tests.Services;
 
 namespace Tests {
 
@@ -25,8 +26,14 @@ namespace Tests {
             ConfigurationManager.AppSettings.Set("ServicePort", port);
             var consulClient = new ConsulClient();
             var registry = new DefaultModulesRegistry();
+
+            var jrpServerHost = new OwinJrpcServer();
+
+            var jrpcConfigurationManager = new JrpcConfigurationManagerNet45();
+            
             registry.AddJRpcModule(jRpcModule);
-            var service = new JRpcService(registry, consulClient);
+            
+            var service = new JRpcService(registry, consulClient, jrpServerHost, jrpcConfigurationManager);
             service.Start();
             var path = $"http://{ipAdress}:{port}";
             var client = new JRpcClient(path);
