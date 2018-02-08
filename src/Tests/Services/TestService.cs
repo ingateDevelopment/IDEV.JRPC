@@ -43,6 +43,11 @@ namespace Tests.Services
         {
             return LIST;
         }
+        
+        public async Task<string> VeryLongTask(string source) {
+            await Task.Delay(1000);
+            return source;
+        }
 
         public Task<string> GetTask()
         {
