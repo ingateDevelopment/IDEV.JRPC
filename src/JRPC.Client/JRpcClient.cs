@@ -40,8 +40,8 @@ namespace JRPC.Client {
             _jsonSerializerSettings = jsonSerializerSettings;
         }
 
-        public Task<TResult> Call<TResult>(string name, string method, Dictionary<string, object> parameters, IAbstractCredentials credentials) {
-            return Task.FromResult(InvokeRequest<TResult>(name, method, parameters, credentials));
+        public async Task<TResult> Call<TResult>(string name, string method, Dictionary<string, object> parameters, IAbstractCredentials credentials) {
+            return await InvokeRequest<TResult>(name, method, parameters, credentials);
         }
 
         public T GetProxy<T>(string taskName) where T : class {
@@ -59,7 +59,7 @@ namespace JRPC.Client {
                        : "/") + name;
         }
 
-        private T InvokeRequest<T>(string service, string method, object data, IAbstractCredentials credentials) {
+        private async Task<T> InvokeRequest<T>(string service, string method, object data, IAbstractCredentials credentials) {
             var id = Guid.NewGuid().ToString();
 
             var request = new JRpcRequest {
@@ -76,8 +76,8 @@ namespace JRPC.Client {
                 Properties = {{"service", service}, {"method", method}, {"RequestID", id}, {"Process", Process.GetCurrentProcess().ProcessName}}
             });
 
-            var jsonresponse = HttpAsyncRequest<T>(METHOD, "application/json", GetEndPoint(service), request, _timeout,
-                credentials).Result;
+            var jsonresponse = await HttpAsyncRequest<T>(METHOD, "application/json", GetEndPoint(service), request, _timeout,
+                credentials);
 
             _logger.Log(new LogEventInfo {
                 Level = LogLevel.Debug,

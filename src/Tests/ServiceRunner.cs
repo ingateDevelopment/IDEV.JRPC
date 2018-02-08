@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Configuration;
 using Consul;
 using JRPC.Client;

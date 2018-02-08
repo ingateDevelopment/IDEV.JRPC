@@ -10,6 +10,7 @@ namespace Tests.Services {
         void ThrowException();
         List<string> GetList();
         Task<string> GetTask();
+        Task<string> VeryLongTask(string source);
         object GetNull();
         DateTime GetDate();
         string[] GetArray();
