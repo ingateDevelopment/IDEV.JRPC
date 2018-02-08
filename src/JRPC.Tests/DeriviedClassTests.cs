@@ -1,3 +1,5 @@
+using System;
+using System.Threading;
 using JRPC.Service;
 using NUnit.Framework;
 using Tests.Services;
@@ -24,7 +26,17 @@ namespace Tests {
 
         [Test]
         public void TestBaseGetString() {
-            Assert.AreEqual(TestService.STRING, _client.GetString());
+            string actual = null;
+            try {
+                Thread.Sleep(2000);
+                actual = _client.GetString();
+            }
+            catch (Exception e) {
+                Console.WriteLine(e);
+                throw;
+            }
+            
+            Assert.AreEqual(TestService.STRING, actual);
         }
 
         [Test]

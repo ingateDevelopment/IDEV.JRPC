@@ -3,8 +3,8 @@ using System.Configuration;
 using Consul;
 using JRPC.Client;
 using JRPC.Service;
-using JRPC.Service.Configuration.Net45;
-using JRPC.Service.Host.Owin;
+using JRPC.Service.Configuration.Core;
+using JRPC.Service.Host.Kestrel;
 using JRPC.Service.Registry;
 
 namespace Tests {
@@ -27,9 +27,9 @@ namespace Tests {
             var consulClient = new ConsulClient();
             var registry = new DefaultModulesRegistry();
 
-            var jrpServerHost = new OwinJrpcServer();
+            var jrpServerHost = new KestrelJRpcServerHost();
 
-            var jrpcConfigurationManager = new JrpcConfigurationManagerNet45();
+            var jrpcConfigurationManager = new JrpcConfigurationManager();
             
             registry.AddJRpcModule(jRpcModule);
             

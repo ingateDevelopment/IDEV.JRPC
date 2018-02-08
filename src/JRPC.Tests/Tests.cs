@@ -1,12 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using JRPC.Core;
 using JRPC.Service;
+using Newtonsoft.Json.Converters;
 using NUnit.Framework;
+using Tests;
 using Tests.Services;
 
-namespace Tests {
+namespace JRPC.Tests {
 
     [TestFixture]
     public class Tests {
@@ -33,7 +34,19 @@ namespace Tests {
 
         [Test]
         public void TestGetString() {
-            Assert.AreEqual(TestService.STRING, _client.GetString());
+            string actual = string.Empty;
+            try {
+                actual = _client.GetString();
+            }
+            catch (Exception e) {
+                Console.WriteLine(e);
+                throw;
+            }
+            
+            
+            
+            
+            Assert.AreEqual(TestService.STRING, actual);
         }
 
         [Test]
