@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using JRPC.Core;
 using JRPC.Service;
 using NUnit.Framework;
@@ -32,6 +33,14 @@ namespace Tests {
         [Test]
         public void TestGetString() {
             Assert.AreEqual(TestService.STRING, _client.GetString());
+        }
+        
+        [Test]
+        public void TestPerformLongTask() {
+            var veryLongTaskResult = _client.VeryLongTask("info");
+            Assert.AreNotEqual(veryLongTaskResult.Status, TaskStatus.RanToCompletion);
+            var result = veryLongTaskResult.Result;
+            Assert.AreEqual(veryLongTaskResult.Status, TaskStatus.RanToCompletion);
         }
 
         [Test]

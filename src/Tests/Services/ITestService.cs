@@ -11,6 +11,7 @@ namespace Tests.Services {
         List<string> GetList();
         Task<string> GetTask();
         object GetNull();
+        Task<string> VeryLongTask(string source);
         DateTime GetDate();
         string[] GetArray();
         Dictionary<string, int> GetDict();
