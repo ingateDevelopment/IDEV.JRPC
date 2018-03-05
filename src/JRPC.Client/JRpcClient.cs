@@ -18,18 +18,23 @@ namespace JRPC.Client {
         private const string DEFAULT_ADDRESS = "http://localhost:12345";
 
         private static TimeSpan DefaultTimeout => TimeSpan.FromHours(1.0);
-        private static JsonSerializerSettings DefaultSettings => new JsonSerializerSettings {ContractResolver = new DefaultContractResolver()};
+
+        private static JsonSerializerSettings DefaultSettings =>
+            new JsonSerializerSettings {ContractResolver = new DefaultContractResolver()};
 
         private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
         private readonly string _endpoint;
         private readonly TimeSpan _timeout;
         private readonly JsonSerializerSettings _jsonSerializerSettings;
 
-        public JRpcClient() : this(DEFAULT_ADDRESS) { }
+        public JRpcClient() : this(DEFAULT_ADDRESS) {
+        }
 
-        public JRpcClient(string endpoint) : this(endpoint, DefaultSettings) { }
+        public JRpcClient(string endpoint) : this(endpoint, DefaultSettings) {
+        }
 
-        public JRpcClient(string endpoint, JsonSerializerSettings jsonSerializerSettings) : this(endpoint, DefaultTimeout, jsonSerializerSettings) {
+        public JRpcClient(string endpoint, JsonSerializerSettings jsonSerializerSettings) : this(endpoint,
+            DefaultTimeout, jsonSerializerSettings) {
             _endpoint = endpoint;
             _jsonSerializerSettings = jsonSerializerSettings;
         }
@@ -40,7 +45,8 @@ namespace JRPC.Client {
             _jsonSerializerSettings = jsonSerializerSettings;
         }
 
-        public async Task<TResult> Call<TResult>(string name, string method, Dictionary<string, object> parameters, IAbstractCredentials credentials) {
+        public async Task<TResult> Call<TResult>(string name, string method, Dictionary<string, object> parameters,
+            IAbstractCredentials credentials) {
             return await InvokeRequest<TResult>(name, method, parameters, credentials);
         }
 
@@ -59,7 +65,12 @@ namespace JRPC.Client {
                        : "/") + name;
         }
 
-        private async Task<T> InvokeRequest<T>(string service, string method, object data, IAbstractCredentials credentials) {
+        private Lazy<string> _processName = new Lazy<string>(() => Process.GetCurrentProcess().ProcessName);
+
+        private string ProcessName => _processName.Value;
+
+        private async Task<T> InvokeRequest<T>(string service, string method, object data,
+            IAbstractCredentials credentials) {
             var id = Guid.NewGuid().ToString();
 
             var request = new JRpcRequest {
@@ -73,10 +84,16 @@ namespace JRPC.Client {
                 LoggerName = _logger.Name,
                 Message = "Request for {0}.{1} with ID {2} sent.",
                 Parameters = new object[] {service, method, id},
-                Properties = {{"service", service}, {"method", method}, {"RequestID", id}, {"Process", Process.GetCurrentProcess().ProcessName}}
+                Properties = {
+                    {"service", service},
+                    {"method", method},
+                    {"RequestID", id},
+                    {"Process", ProcessName}
+                }
             });
 
-            var jsonresponse = await HttpAsyncRequest<T>(METHOD, "application/json", GetEndPoint(service), request, _timeout,
+            var jsonresponse = await HttpAsyncRequest<T>(METHOD, "application/json", GetEndPoint(service), request,
+                _timeout,
                 credentials);
 
             _logger.Log(new LogEventInfo {
@@ -84,7 +101,12 @@ namespace JRPC.Client {
                 LoggerName = _logger.Name,
                 Message = "Response for {0}.{1} with ID {2} received.",
                 Parameters = new[] {service, method, jsonresponse.Id},
-                Properties = {{"service", service}, {"method", method}, {"RequestID", jsonresponse.Id}, {"Process", Process.GetCurrentProcess().ProcessName}}
+                Properties = {
+                    {"service", service},
+                    {"method", method},
+                    {"RequestID", jsonresponse.Id},
+                    {"Process", ProcessName}
+                }
             });
 
             if (jsonresponse.Error != null) {
@@ -95,6 +117,7 @@ namespace JRPC.Client {
             if (result == null) {
                 return default(T);
             }
+
             return result;
         }
 
@@ -166,7 +189,7 @@ namespace JRPC.Client {
         }
 
         #region Упрощенное создание JRpcClient
-        
+
         /// <summary>
         ///     Создает сервис для подключения
         /// </summary>
@@ -174,7 +197,8 @@ namespace JRPC.Client {
         /// <param name="serviceName"></param>
         /// <param name="address"></param>
         /// <returns></returns>
-        public static TService Create<TService>(string serviceName, string address = DEFAULT_ADDRESS) where TService : class {
+        public static TService Create<TService>(string serviceName, string address = DEFAULT_ADDRESS)
+            where TService : class {
             return Create<TService>(serviceName, DefaultTimeout, DefaultSettings, address);
         }
 
@@ -187,7 +211,7 @@ namespace JRPC.Client {
         /// <param name="settings">настройки</param>
         /// <param name="address"></param>
         /// <returns></returns>
-        public static TService Create<TService>(string serviceName, TimeSpan timeout, JsonSerializerSettings settings, 
+        public static TService Create<TService>(string serviceName, TimeSpan timeout, JsonSerializerSettings settings,
             string address = DEFAULT_ADDRESS) where TService : class {
 
             var client = new JRpcClient(address, timeout, settings);
@@ -211,7 +235,8 @@ namespace JRPC.Client {
         /// <param name="timeout"></param>
         /// <param name="address"></param>
         /// <returns></returns>
-        public static TService Create<TService>(TimeSpan timeout, string address = DEFAULT_ADDRESS) where TService : class {
+        public static TService Create<TService>(TimeSpan timeout, string address = DEFAULT_ADDRESS)
+            where TService : class {
             return Create<TService>(timeout, DefaultSettings, address);
         }
 
@@ -222,7 +247,8 @@ namespace JRPC.Client {
         /// <param name="settings"></param>
         /// <param name="address"></param>
         /// <returns></returns>
-        public static TService Create<TService>(JsonSerializerSettings settings, string address = DEFAULT_ADDRESS) where TService : class {
+        public static TService Create<TService>(JsonSerializerSettings settings, string address = DEFAULT_ADDRESS)
+            where TService : class {
             return Create<TService>(DefaultTimeout, settings, address);
         }
 
@@ -234,7 +260,7 @@ namespace JRPC.Client {
         /// <param name="settings">настройки</param>
         /// <param name="address">адрес</param>
         /// <returns></returns>
-        public static TService Create<TService>(TimeSpan timeout, JsonSerializerSettings settings, 
+        public static TService Create<TService>(TimeSpan timeout, JsonSerializerSettings settings,
             string address = DEFAULT_ADDRESS) where TService : class {
             const string PREFIX_TO_START_TRIM = "I";
 
@@ -245,5 +271,6 @@ namespace JRPC.Client {
         }
 
         #endregion
+
     }
 }
