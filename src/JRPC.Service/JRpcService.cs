@@ -1,33 +1,33 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reflection;
 using Consul;
-using Microsoft.Owin.Hosting;
 using NLog;
-using Owin;
 using JRPC.Service.Registry;
 
 namespace JRPC.Service {
-
     public sealed class JRpcService {
-
         private const int DefaultStartPort = 5678;
         private const int DefaultEndPort = 60000;
         private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
         private readonly IModulesRegistry _modulesRegistry;
         private readonly IConsulClient _consulClient;
+        private readonly IJrpcConfigurationManager _jrpcConfigurationManager;
         private readonly List<string> _registeredConsulIds = new List<string>();
-        private IDisposable _server;
 
-        public JRpcService(IModulesRegistry modulesRegistry, IConsulClient consulClient) {
+        private readonly IJrpcServerHost _jrpcServerHost;
+
+        public JRpcService(IModulesRegistry modulesRegistry, IConsulClient consulClient,
+            IJrpcServerHost jrpcServerHost, IJrpcConfigurationManager jrpcConfigurationManager) {
             _modulesRegistry = modulesRegistry;
             _consulClient = consulClient;
+            _jrpcServerHost = jrpcServerHost;
+            _jrpcConfigurationManager = jrpcConfigurationManager;
         }
 
         public bool Start() {
@@ -50,13 +50,15 @@ namespace JRPC.Service {
                     _logger.Fatal("Unable start service on port {0}", port);
                     return false;
                 }
-            } else {
+            }
+            else {
                 foreach (var p in availiablePorts) {
                     if (StartServices(services, address, p)) {
                         port = p;
                         break;
                     }
                 }
+
                 if (!port.HasValue) {
                     _logger.Fatal("Unable start service on any port");
                     return false;
@@ -71,47 +73,55 @@ namespace JRPC.Service {
                 services[service].BindingUrl = $"{url}{service}";
 
             }
-            _logger.Info("Зарегистрировали в консуле {0} сервисов: {1}", _registeredConsulIds.Count, string.Join(", ", _registeredConsulIds));
+
+            _logger.Info("Зарегистрировали в консуле {0} сервисов: {1}", _registeredConsulIds.Count,
+                string.Join(", ", _registeredConsulIds));
             return true;
         }
 
         private bool StartServices(Dictionary<string, JRpcModule> services, string address, int port) {
             string url = "http://" + address + ":" + port + "/";
             try {
-                _server = WebApp.Start(new StartOptions(url) {
-                    ServerFactory = typeof(Microsoft.Owin.Host.HttpListener.OwinHttpListener).Namespace
-                }, app => app.Run(context => {
-                    if (context.Request.Path.HasValue) {
-                        var path = context.Request.Path.Value.TrimStart('/');
+
+                _jrpcServerHost.StartServerHost(url, context => {
+                    if (context.JrpcRequestContext.Path != null) {
+                        var path = context.JrpcRequestContext.Path.TrimStart('/');
                         JRpcModule module;
                         if (services.TryGetValue(path, out module)) {
-                            if (context.Request.Method == "POST") {
+                            if (context.JrpcRequestContext.Method == "POST") {
                                 return module.ProcessRequest(context);
                             }
+
                             return module.PrintInfo(context);
                         }
                     }
 
-                    context.Response.StatusCode = (int) HttpStatusCode.NotFound;
-                    return context.Response.WriteAsync(string.Empty);
-                }));
+                    context.JrpcResponseContext.StatusCode = (int) HttpStatusCode.NotFound;
+                    return context.JrpcResponseContext.Body.WriteAsync(null, 0, 0);
+                });
                 return true;
-            } catch (TargetInvocationException e) {
+            }
+            catch (TargetInvocationException e) {
                 if (e.InnerException is HttpListenerException) {
                     _logger.Warn($"Unable start service on port {port}", e);
-                } else {
+                }
+                else {
                     throw;
                 }
             }
 
+
+
+
             return false;
         }
 
-        private static int? GetPort() {
-            var configValue = ConfigurationManager.AppSettings.Get("ServicePort");
+        private int? GetPort() {
+            var configValue = _jrpcConfigurationManager.Get("ServicePort");
             if (!string.IsNullOrWhiteSpace(configValue)) {
                 return Convert.ToInt32(configValue);
             }
+
             return null;
         }
 
@@ -126,10 +136,11 @@ namespace JRPC.Service {
         }
 
         public bool Stop() {
-            _server?.Dispose();
+            _jrpcServerHost?.Dispose();
             foreach (var serviceId in _registeredConsulIds) {
                 _consulClient.Agent.ServiceDeregister(serviceId);
             }
+
             return true;
         }
 
@@ -152,8 +163,8 @@ namespace JRPC.Service {
             return consulServiceId;
         }
 
-        private static string GetAddress() {
-            var configValue = ConfigurationManager.AppSettings.Get("ServiceAddress");
+        private string GetAddress() {
+            var configValue =  _jrpcConfigurationManager.Get("ServiceAddress");
             return !string.IsNullOrWhiteSpace(configValue) ? configValue : GetAdressFromDns();
         }
 

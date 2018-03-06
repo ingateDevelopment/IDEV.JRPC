@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using Microsoft.Owin;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using NLog;
@@ -27,17 +26,17 @@ namespace JRPC.Service {
         private readonly DateTime _buildTime;
         private JsonSerializer _jsonSerializer;
 
-        public Func<IOwinContext, Task> PrintInfo {
+        public Func<JrpcContext, Task> PrintInfo {
             get { return (context) => Task.FromResult(ModuleInfo); }
         }
 
         public string ModuleInfo => $"Module [{ModuleName}] built at {_buildTime:yyyy-MM-dd HH:mm:ss} bindingUrl at {BindingUrl}";
 
-        public Func<IOwinContext, Task> ProcessRequest {
+        public Func<JrpcContext, Task> ProcessRequest {
             get {
                 return (context) => {
                     JRpcRequest request = null;
-                    using (var reader = new JsonTextReader(new StreamReader(context.Request.Body))) {
+                    using (var reader = new JsonTextReader(new StreamReader(context.JrpcRequestContext.Body))) {
                         request = _jsonSerializer.Deserialize<JRpcRequest>(reader);
                     }
 
@@ -48,7 +47,7 @@ namespace JRPC.Service {
                             Error = newEx
                         };
                         _logger.Error("Error occurred during method invocation.", newEx);
-                        SerializeResponse(context.Response, response);
+                        SerializeResponse(context.JrpcResponseContext, response);
                         return Task.FromResult(0);
                     }
 
@@ -74,7 +73,7 @@ namespace JRPC.Service {
                             Error = new JRpcException("Method not found. The method does not exist / is not available.", ModuleInfo, methodName),
                             Id = request.Id
                         };
-                        SerializeResponse(context.Response, response);
+                        SerializeResponse(context.JrpcResponseContext, response);
                     } else {
                         try {
                             var resp = new JRpcResponse {
@@ -89,7 +88,7 @@ namespace JRPC.Service {
                                 Properties = {{"service", ModuleName}, {"method", request.Method}, {"RequestID", request.Id}}
                             });
 
-                            SerializeResponse(context.Response, resp);
+                            SerializeResponse(context.JrpcResponseContext, resp);
                         } catch (Exception ex) {
                             while (ex is AggregateException){
                                 ex = (ex as AggregateException).InnerException;
@@ -101,7 +100,7 @@ namespace JRPC.Service {
                                 Id = request.Id
                             };
                             _logger.Error("Error occurred during method invocation.", newEx);
-                            SerializeResponse(context.Response, response);
+                            SerializeResponse(context.JrpcResponseContext, response);
                         }
                     }
                     return Task.FromResult(0);
@@ -126,9 +125,9 @@ namespace JRPC.Service {
             _buildTime = GetLinkerTime(GetType().Assembly);
         }
 
-        private void SerializeResponse(IOwinResponse response, JRpcResponse rpcResponse) {
-            response.ContentType = "application/json";
-            using (var jw = new JsonTextWriter(new StreamWriter(response.Body))) {
+        private void SerializeResponse(IJrpcResponseContext jrpcResponseContext, JRpcResponse rpcResponse) {
+            jrpcResponseContext.ContentType = "application/json";
+            using (var jw = new JsonTextWriter(new StreamWriter(jrpcResponseContext.Body))) {
                 var serializer = JsonSerializer.Create(_jsonSerializerSettings);
                 serializer.Serialize(jw, rpcResponse);
             }

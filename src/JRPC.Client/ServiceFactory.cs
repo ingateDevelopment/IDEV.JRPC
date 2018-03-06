@@ -2,7 +2,7 @@
 
 namespace JRPC.Client {
     internal static class ServiceFactory {
-        private static readonly ProxyGenerator _generator = new ProxyGenerator(new PersistentProxyBuilder());
+        private static readonly ProxyGenerator _generator = new ProxyGenerator(new DefaultProxyBuilder(new ModuleScope(true)));
 
         /// <summary>
         /// Создает прокси объект с интерфейсом <typeparamref name="T"/>
@@ -16,3 +16,4 @@ namespace JRPC.Client {
 
     }
 }
+    

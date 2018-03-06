@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Consul, Version=0.7.2.4, Culture=neutral, PublicKeyToken=20a6ad9a81df1d95">
+      <HintPath>..\packages\Consul.0.7.2.4\lib\net45\Consul.dll</HintPath>
+    </Reference>
+    <Reference Include="JRPC.Registry.Ninject, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\TestJrpcOwinService\bin\Debug\JRPC.Registry.Ninject.dll</HintPath>
+    </Reference>
+    <Reference Include="Ninject, Version=3.2.0.0, Culture=neutral, PublicKeyToken=c7192dc5380945e7">
+      <HintPath>..\packages\Ninject.3.2.2.0\lib\net45-full\Ninject.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\src\JRPC.Service.Configuration.Core\JRPC.Service.Configuration.Core.csproj" />
+    <ProjectReference Include="..\src\JRPC.Service.Host.Kestrel\JRPC.Service.Host.Kestrel.csproj">
+      <Project>{C9D75C43-2FA7-4FE5-A3EC-CADF259DE11E}</Project>
+      <Name>JRPC.Service.Host.Kestrel</Name>
+    </ProjectReference>
+  </ItemGroup>
+</Project>
