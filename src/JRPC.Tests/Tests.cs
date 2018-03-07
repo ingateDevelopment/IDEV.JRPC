@@ -49,13 +49,13 @@ namespace JRPC.Tests {
             Assert.AreEqual(TestService.STRING, actual);
         }
         
-        [Test]
-        public void TestPerformLongTask() {
-            var veryLongTaskResult = _client.VeryLongTask("info");
-            Assert.AreNotEqual(veryLongTaskResult.Status, TaskStatus.RanToCompletion);
-            var result = veryLongTaskResult.Result;
-            Assert.AreEqual(veryLongTaskResult.Status, TaskStatus.RanToCompletion);
-        }
+//        [Test]
+//        public void TestPerformLongTask() {
+//            var veryLongTaskResult = _client.VeryLongTask("info");
+//            Assert.AreNotEqual(veryLongTaskResult.Status, TaskStatus.RanToCompletion);
+//            var result = veryLongTaskResult.Result;
+//            Assert.AreEqual(veryLongTaskResult.Status, TaskStatus.RanToCompletion);
+//        }
 
         [Test]
         public void TestGetList() {

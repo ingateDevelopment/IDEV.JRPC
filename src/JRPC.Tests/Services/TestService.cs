@@ -54,10 +54,10 @@ namespace Tests.Services
             return Task.FromResult(STRING);
         }
 
-        public async Task<string> VeryLongTask(string source) {
-            await Task.Delay(1000);
-            return source;
-        }
+//        public async Task<string> VeryLongTask(string source) {
+//            await Task.Delay(1000);
+//            return source;
+//        }
 
         public object GetNull()
         {

@@ -10,7 +10,7 @@ namespace Tests.Services {
         void ThrowException();
         List<string> GetList();
         Task<string> GetTask();
-        Task<string> VeryLongTask(string source);
+//        Task<string> VeryLongTask(string source);
         object GetNull();
         Task<string> VeryLongTask(string source);
         DateTime GetDate();
