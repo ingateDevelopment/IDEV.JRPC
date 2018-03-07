@@ -1,11 +1,12 @@
 ﻿#tool nuget:?package=NUnit.ConsoleRunner&version=3.4.0
+#addin "Cake.ExtendedNuGet"
 //////////////////////////////////////////////////////////////////////
 // ARGUMENTS
 //////////////////////////////////////////////////////////////////////
 
 var target = Argument("target", "Default");
 var configuration = Argument("configuration", "Release");
-var version = Argument("version", "1.1.10");
+var version = Argument("version", "2.0.0");
 
 //////////////////////////////////////////////////////////////////////
 // PREPARATION
@@ -22,6 +23,8 @@ var outputPack = output + Directory("pack");
 var solutionFile = "./IDEV.JRPC.sln";
 var solution = new Lazy<SolutionParserResult>(() => ParseSolution(solutionFile));
 var distDir = Directory("./nuget");
+
+var nugetApiKey = "oy2kao4u4vmjvss46mwaao4kkjzimg6e7kicccry3wr5zu";
 
 //var buildDir = Directory("./src/Example/bin") + Directory(configuration);
 
@@ -62,7 +65,7 @@ Task("Build")
     {
       // Use MSBuild
       MSBuild(solutionFile, settings =>
-        settings.SetConfiguration(configuration));
+        settings.SetConfiguration(configuration).UseToolVersion(MSBuildToolVersion.Default));
     }
     else
     {
@@ -101,6 +104,14 @@ Task("Package")
   };
 });
 
+Task("Deploy")
+  .Does(() => {
+    var pkgs = GetFiles("./nuget/*.nupkg");
+    NuGetPush(pkgs, new NuGetPushSettings {
+      Source = "https://api.nuget.org/v3/index.json",
+      ApiKey = nugetApiKey
+	});
+});
 //////////////////////////////////////////////////////////////////////
 // TASK TARGETS
 //////////////////////////////////////////////////////////////////////
