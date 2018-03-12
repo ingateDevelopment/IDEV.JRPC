@@ -64,10 +64,6 @@
       <Project>{ffb1895f-dfcf-4ed1-9c8e-a25585db5b6b}</Project>
       <Name>JRPC.Registry.Ninject</Name>
     </ProjectReference>
-    <ProjectReference Include="..\src\JRPC.Service.Configuration.Net45\JRPC.Service.Configuration.Net45.csproj">
-      <Project>{A3CFDA7C-0DC1-4FD4-A41C-8864836AC51D}</Project>
-      <Name>JRPC.Service.Configuration.Net45</Name>
-    </ProjectReference>
     <ProjectReference Include="..\src\JRPC.Service.Host.Owin\JRPC.Service.Host.Owin.csproj">
       <Project>{18C24CD0-BF60-4A48-875B-72172341E41F}</Project>
       <Name>JRPC.Service.Host.Owin</Name>

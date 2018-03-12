@@ -5,7 +5,6 @@
   <ItemGroup>
     <ProjectReference Include="..\JRPC.Client\JRPC.Client.csproj" />
     <ProjectReference Include="..\JRPC.Core\JRPC.Core.csproj" />
-    <ProjectReference Include="..\JRPC.Service.Configuration.Core\JRPC.Service.Configuration.Core.csproj" />
     <ProjectReference Include="..\JRPC.Service.Host.Kestrel\JRPC.Service.Host.Kestrel.csproj" />
     <ProjectReference Include="..\JRPC.Service\JRPC.Service.csproj" />
   </ItemGroup>

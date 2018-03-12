@@ -3,7 +3,6 @@ using System.Configuration;
 using Consul;
 using JRPC.Client;
 using JRPC.Service;
-using JRPC.Service.Configuration.Core;
 using JRPC.Service.Host.Kestrel;
 using JRPC.Service.Registry;
 
@@ -12,7 +11,7 @@ namespace Tests {
     public class ServiceRunner {
 
         private const string DEFAULT_IP_ADRESS = "localhost";
-        private const string DEFAULT_PORT = "8788";
+        private const string DEFAULT_PORT = "8795";
 
         public static Tuple<JRpcService, T> StartService<T>(string serviceName, JRpcModule jRpcModule, string ipAdress = null, string port = null) where T : class {
             if (string.IsNullOrEmpty(ipAdress)) {
@@ -29,11 +28,10 @@ namespace Tests {
 
             var jrpServerHost = new KestrelJRpcServerHost();
 
-            var jrpcConfigurationManager = new JrpcConfigurationManager();
             
             registry.AddJRpcModule(jRpcModule);
             
-            var service = new JRpcService(registry, consulClient, jrpServerHost, jrpcConfigurationManager);
+            var service = new JRpcService(registry, consulClient, jrpServerHost);
             service.Start();
             var path = $"http://{ipAdress}:{port}";
             var client = new JRpcClient(path);

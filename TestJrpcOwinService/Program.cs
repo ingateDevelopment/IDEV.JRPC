@@ -2,7 +2,6 @@
 using Consul;
 using JRPC.Registry.Ninject;
 using JRPC.Service;
-using JRPC.Service.Configuration.Net45;
 using JRPC.Service.Host.Owin;
 using JRPC.Service.Registry;
 using Ninject.Modules;
@@ -38,7 +37,6 @@ namespace TestJrpcOwinService
         {
             Bind<IJrpcServerHost>().To<OwinJrpcServer>().InSingletonScope();
             Bind<IConsulClient>().To<ConsulClient>();
-            Bind<IJrpcConfigurationManager>().To<JrpcConfigurationManagerNet45>();
             Bind<JRpcModule>().To<NewTestService>();
             Bind<IModulesRegistry>().To<NinjectModulesRegistry>();
             

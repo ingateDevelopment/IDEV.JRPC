@@ -1,7 +1,6 @@
 ﻿using System;
 using Consul;
 using JRPC.Service;
-using JRPC.Service.Configuration.Core;
 using JRPC.Service.Host.Kestrel;
 using JRPC.Service.Registry;
 
@@ -13,7 +12,7 @@ namespace TestKestrepJrpcService
         {
             var defaultModulesRegistry = new DefaultModulesRegistry();
             defaultModulesRegistry.AddJRpcModule(new NewTestService());
-            var service = new JRpcService(defaultModulesRegistry, new ConsulClient(), new KestrelJRpcServerHost(), new JrpcConfigurationManager());
+            var service = new JRpcService(defaultModulesRegistry, new ConsulClient(), new KestrelJRpcServerHost());
             service.Start();
             Console.WriteLine("Hello World!");
             Console.ReadLine();
