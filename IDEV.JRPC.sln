@@ -26,10 +26,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JRPC.Service", "src\JRPC.Se
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JRPC.Registry.Ninject", "src\JRPC.Registry.Ninject\JRPC.Registry.Ninject.csproj", "{FFB1895F-DFCF-4ED1-9C8E-A25585DB5B6B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JRPC.Service.Configuration.Core", "src\JRPC.Service.Configuration.Core\JRPC.Service.Configuration.Core.csproj", "{5F5E94E9-0541-4968-A56D-77224D8F095F}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JRPC.Service.Configuration.Net45", "src\JRPC.Service.Configuration.Net45\JRPC.Service.Configuration.Net45.csproj", "{A3CFDA7C-0DC1-4FD4-A41C-8864836AC51D}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JRPC.Tests", "src\JRPC.Tests\JRPC.Tests.csproj", "{29FF36AC-C7B0-429D-A703-395A03B60266}"
 EndProject
 Global
@@ -58,14 +54,6 @@ Global
 		{FFB1895F-DFCF-4ED1-9C8E-A25585DB5B6B}.Debug|x64.Build.0 = Debug|Any CPU
 		{FFB1895F-DFCF-4ED1-9C8E-A25585DB5B6B}.Release|x64.ActiveCfg = Release|Any CPU
 		{FFB1895F-DFCF-4ED1-9C8E-A25585DB5B6B}.Release|x64.Build.0 = Release|Any CPU
-		{5F5E94E9-0541-4968-A56D-77224D8F095F}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{5F5E94E9-0541-4968-A56D-77224D8F095F}.Debug|x64.Build.0 = Debug|Any CPU
-		{5F5E94E9-0541-4968-A56D-77224D8F095F}.Release|x64.ActiveCfg = Release|Any CPU
-		{5F5E94E9-0541-4968-A56D-77224D8F095F}.Release|x64.Build.0 = Release|Any CPU
-		{A3CFDA7C-0DC1-4FD4-A41C-8864836AC51D}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{A3CFDA7C-0DC1-4FD4-A41C-8864836AC51D}.Debug|x64.Build.0 = Debug|Any CPU
-		{A3CFDA7C-0DC1-4FD4-A41C-8864836AC51D}.Release|x64.ActiveCfg = Release|Any CPU
-		{A3CFDA7C-0DC1-4FD4-A41C-8864836AC51D}.Release|x64.Build.0 = Release|Any CPU
 		{C9D75C43-2FA7-4FE5-A3EC-CADF259DE11E}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{C9D75C43-2FA7-4FE5-A3EC-CADF259DE11E}.Debug|x64.Build.0 = Debug|Any CPU
 		{C9D75C43-2FA7-4FE5-A3EC-CADF259DE11E}.Release|x64.ActiveCfg = Release|Any CPU

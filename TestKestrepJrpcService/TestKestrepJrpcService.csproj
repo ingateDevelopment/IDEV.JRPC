@@ -15,7 +15,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\src\JRPC.Service.Configuration.Core\JRPC.Service.Configuration.Core.csproj" />
     <ProjectReference Include="..\src\JRPC.Service.Host.Kestrel\JRPC.Service.Host.Kestrel.csproj">
       <Project>{C9D75C43-2FA7-4FE5-A3EC-CADF259DE11E}</Project>
       <Name>JRPC.Service.Host.Kestrel</Name>

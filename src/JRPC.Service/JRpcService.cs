@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -17,17 +18,15 @@ namespace JRPC.Service {
 
         private readonly IModulesRegistry _modulesRegistry;
         private readonly IConsulClient _consulClient;
-        private readonly IJrpcConfigurationManager _jrpcConfigurationManager;
         private readonly List<string> _registeredConsulIds = new List<string>();
 
         private readonly IJrpcServerHost _jrpcServerHost;
 
         public JRpcService(IModulesRegistry modulesRegistry, IConsulClient consulClient,
-            IJrpcServerHost jrpcServerHost, IJrpcConfigurationManager jrpcConfigurationManager) {
+            IJrpcServerHost jrpcServerHost) {
             _modulesRegistry = modulesRegistry;
             _consulClient = consulClient;
             _jrpcServerHost = jrpcServerHost;
-            _jrpcConfigurationManager = jrpcConfigurationManager;
         }
 
         public bool Start() {
@@ -117,7 +116,7 @@ namespace JRPC.Service {
         }
 
         private int? GetPort() {
-            var configValue = _jrpcConfigurationManager.Get("ServicePort");
+            var configValue = ConfigurationManager.AppSettings.Get("ServicePort");
             if (!string.IsNullOrWhiteSpace(configValue)) {
                 return Convert.ToInt32(configValue);
             }
@@ -164,7 +163,7 @@ namespace JRPC.Service {
         }
 
         private string GetAddress() {
-            var configValue =  _jrpcConfigurationManager.Get("ServiceAddress");
+            var configValue =  ConfigurationManager.AppSettings.Get("ServiceAddress");
             return !string.IsNullOrWhiteSpace(configValue) ? configValue : GetAdressFromDns();
         }
 

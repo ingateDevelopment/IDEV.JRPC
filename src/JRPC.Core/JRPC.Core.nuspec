@@ -2,7 +2,7 @@
 <package xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <metadata>
     <id>JRPC.Core</id>
-    <version>2.0.0-alpha</version>
+    <version>2.0.2-beta</version>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A JSON-RPC core types library.</description>
     <authors>IDEV</authors>
