@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using JRPC.Client.Extensions;
 using JRPC.Core;
@@ -46,8 +47,8 @@ namespace JRPC.Client {
         }
 
         public async Task<TResult> Call<TResult>(string name, string method, Dictionary<string, object> parameters,
-            IAbstractCredentials credentials) {
-            return await InvokeRequest<TResult>(name, method, parameters, credentials);
+            IAbstractCredentials credentials, Type proxyType) {
+            return await InvokeRequest<TResult>(name, method, parameters, credentials, proxyType);
         }
 
         public T GetProxy<T>(string taskName) where T : class {
@@ -66,16 +67,18 @@ namespace JRPC.Client {
         }
 
         private Lazy<string> _processName = new Lazy<string>(() => Process.GetCurrentProcess().ProcessName);
+        private Lazy<string> _currentIp = new Lazy<string>(() => Array.FindLast(Dns.GetHostEntry(string.Empty).AddressList, a => a.AddressFamily == AddressFamily.InterNetwork).ToString());
 
         private string ProcessName => _processName.Value;
+        private string CurrentIp => _currentIp.Value;
 
         private async Task<T> InvokeRequest<T>(string service, string method, object data,
-            IAbstractCredentials credentials) {
+            IAbstractCredentials credentials, Type proxyType) {
             var id = Guid.NewGuid().ToString();
 
             var request = new JRpcRequest {
                 Id = id,
-                Method = method,
+                Method = method,    
                 Params = data,
             };
 
@@ -88,13 +91,15 @@ namespace JRPC.Client {
                     {"service", service},
                     {"method", method},
                     {"RequestID", id},
-                    {"Process", ProcessName}
+                    {"Process", ProcessName}, 
+                    {"CurrentIp", CurrentIp }, 
+                    {"proxy_type_name", proxyType.FullName }
                 }
             });
 
             var jsonresponse = await HttpAsyncRequest<T>(METHOD, "application/json", GetEndPoint(service), request,
                 _timeout,
-                credentials);
+                credentials, proxyType);
 
             _logger.Log(new LogEventInfo {
                 Level = LogLevel.Debug,
@@ -105,7 +110,10 @@ namespace JRPC.Client {
                     {"service", service},
                     {"method", method},
                     {"RequestID", jsonresponse.Id},
-                    {"Process", ProcessName}
+                    {"Process", ProcessName}, 
+                    {"CurrentIp", CurrentIp },
+                    {"proxy_type_name", proxyType.FullName },
+                    {"Status", jsonresponse.Error != null ? "fail" : "ok"}
                 }
             });
 
@@ -132,7 +140,7 @@ namespace JRPC.Client {
         /// <param name="credentials"></param>
         /// <returns></returns>
         private async Task<JRpcResponse<T>> HttpAsyncRequest<T>(string method, string contentType, string url,
-            JRpcRequest jRpcRequest, TimeSpan timeout, IAbstractCredentials credentials) {
+            JRpcRequest jRpcRequest, TimeSpan timeout, IAbstractCredentials credentials, Type proxyType) {
             var request = (HttpWebRequest) WebRequest.Create(url);
             if (request.ServicePoint.ConnectionLimit < 100) {
                 request.ServicePoint.ConnectionLimit = 100;
@@ -149,7 +157,9 @@ namespace JRPC.Client {
             if (credentials != null) {
                 request.Headers.Add(HttpRequestHeader.Authorization, credentials.GetHeaderValue());
             }
-
+            request.Headers.Add(JRpcHeaders.CLIENT_IP_HEADER_NAME, CurrentIp);
+            request.Headers.Add(JRpcHeaders.CLIENT_PROCESS_NAME_HEADER_NAME, ProcessName);
+            request.Headers.Add(JRpcHeaders.CLIENT_PROXY_INTERFACE_NAME, proxyType.FullName);
             var serializer = JsonSerializer.Create(_jsonSerializerSettings);
 
             if (jRpcRequest != null) {

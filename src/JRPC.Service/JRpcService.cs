@@ -88,9 +88,8 @@ namespace JRPC.Service {
                         JRpcModule module;
                         if (services.TryGetValue(path, out module)) {
                             if (context.JrpcRequestContext.Method == "POST") {
-                                return module.ProcessRequest(context);
+                                return module.ProcessRequest(context, address, port.ToString());
                             }
-
                             return module.PrintInfo(context);
                         }
                     }

@@ -18,8 +18,9 @@ namespace JRPC.Client {
             string methodName,
             Dictionary<string, object> parametersStr,
             JsonSerializerSettings jsonSerializerSettings,
-            IAbstractCredentials credentials) {
-            return client.Call<TResult>(taskName, methodName, parametersStr, credentials);
+            IAbstractCredentials credentials,
+            Type proxyType) {
+            return client.Call<TResult>(taskName, methodName, parametersStr, credentials, proxyType);
         }
 
         public static T Get<T>(IJRpcClient client, string taskName, string cacheKey, JsonSerializerSettings jsonSerializerSettings, IAbstractCredentials credentials) where T : class {

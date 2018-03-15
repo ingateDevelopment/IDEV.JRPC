@@ -41,8 +41,8 @@ namespace JRPC.Client {
             }
             var invoker = _invokers.GetOrAdd(invocation.Method.Name.ToLowerInvariant(), GetInvoker(invocation.Method));
             try {
-                var result = invoker.MethodInvoker(_client, _taskName, invocation.Method.Name.ToLowerInvariant(), dictionary, _jsonSerializerSettings, _credentials);
-
+                var result = invoker.MethodInvoker(_client, _taskName, invocation.Method.Name.ToLowerInvariant(),
+                    dictionary, _jsonSerializerSettings, _credentials, invocation.Method.DeclaringType);
                 var needReturnTask = invoker.NeedReturnTask;
                 invocation.ReturnValue = needReturnTask ? result : (object) ((dynamic) result).Result;
             } catch (AggregateException e) {
@@ -85,7 +85,8 @@ namespace JRPC.Client {
             string methodName,
             Dictionary<string, object> parametersStr,
             JsonSerializerSettings jsonSerializerSettings,
-            IAbstractCredentials credentials
+            IAbstractCredentials credentials, 
+            Type proxyType
         );
 
     }
