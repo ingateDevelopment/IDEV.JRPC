@@ -8,7 +8,6 @@ using JRPC.Core.Security;
 using Newtonsoft.Json;
 
 namespace JRPC.Client {
-
     internal class JRpcIntercepter : IInterceptor {
 
         private static readonly MethodInfo _invokeMethod = typeof(JRpcStaticClientFactory).GetMethod("Invoke", BindingFlags.Static | BindingFlags.Public);
@@ -41,8 +40,15 @@ namespace JRPC.Client {
             }
             var invoker = _invokers.GetOrAdd(invocation.Method.Name.ToLowerInvariant(), GetInvoker(invocation.Method));
             try {
-                var result = invoker.MethodInvoker(_client, _taskName, invocation.Method.Name.ToLowerInvariant(),
-                    dictionary, _jsonSerializerSettings, _credentials, invocation.Method.DeclaringType);
+                var result = invoker.MethodInvoker(_client,
+                    new JrpcClientCallParams {
+                        ServiceName = _taskName,
+                        MethodName =invocation.Method.Name.ToLowerInvariant(),
+                        ParametersStr = dictionary,
+                        JsonSerializerSettings = _jsonSerializerSettings,
+                        Credentials = _credentials,
+                        ProxyType = invocation.Method.DeclaringType
+                    });
                 var needReturnTask = invoker.NeedReturnTask;
                 invocation.ReturnValue = needReturnTask ? result : (object) ((dynamic) result).Result;
             } catch (AggregateException e) {
@@ -81,12 +87,7 @@ namespace JRPC.Client {
 
         private delegate object Invoker(
             IJRpcClient client,
-            string taskName,
-            string methodName,
-            Dictionary<string, object> parametersStr,
-            JsonSerializerSettings jsonSerializerSettings,
-            IAbstractCredentials credentials, 
-            Type proxyType
+            JrpcClientCallParams clientCallParams
         );
 
     }

@@ -46,9 +46,8 @@ namespace JRPC.Client {
             _jsonSerializerSettings = jsonSerializerSettings;
         }
 
-        public async Task<TResult> Call<TResult>(string name, string method, Dictionary<string, object> parameters,
-            IAbstractCredentials credentials, Type proxyType) {
-            return await InvokeRequest<TResult>(name, method, parameters, credentials, proxyType);
+        public async Task<TResult> Call<TResult>(JrpcClientCallParams clientCallParams) {
+            return await InvokeRequest<TResult>(clientCallParams);
         }
 
         public T GetProxy<T>(string taskName) where T : class {
@@ -72,47 +71,45 @@ namespace JRPC.Client {
         private string ProcessName => _processName.Value;
         private string CurrentIp => _currentIp.Value;
 
-        private async Task<T> InvokeRequest<T>(string service, string method, object data,
-            IAbstractCredentials credentials, Type proxyType) {
+        private async Task<T> InvokeRequest<T>(JrpcClientCallParams clientCallParams) {
             var id = Guid.NewGuid().ToString();
 
             var request = new JRpcRequest {
                 Id = id,
-                Method = method,    
-                Params = data,
+                Method = clientCallParams.MethodName,    
+                Params = clientCallParams.ParametersStr,
             };
 
             _logger.Log(new LogEventInfo {
                 Level = LogLevel.Debug,
                 LoggerName = _logger.Name,
                 Message = "Request for {0}.{1} with ID {2} sent.",
-                Parameters = new object[] {service, method, id},
+                Parameters = new object[] {clientCallParams.ServiceName, clientCallParams.MethodName, id},
                 Properties = {
-                    {"service", service},
-                    {"method", method},
+                    {"service", clientCallParams.ServiceName},
+                    {"method", clientCallParams.MethodName},
                     {"RequestID", id},
                     {"Process", ProcessName}, 
                     {"CurrentIp", CurrentIp }, 
-                    {"proxy_type_name", proxyType.FullName }
+                    {"proxy_type_name", clientCallParams.ProxyType.FullName }
                 }
             });
 
-            var jsonresponse = await HttpAsyncRequest<T>(METHOD, "application/json", GetEndPoint(service), request,
-                _timeout,
-                credentials, proxyType);
+            var jsonresponse = await HttpAsyncRequest<T>(METHOD, "application/json", GetEndPoint(clientCallParams.ServiceName), request,
+                _timeout, clientCallParams.Credentials, clientCallParams.ProxyType);
 
             _logger.Log(new LogEventInfo {
                 Level = LogLevel.Debug,
                 LoggerName = _logger.Name,
                 Message = "Response for {0}.{1} with ID {2} received.",
-                Parameters = new[] {service, method, jsonresponse.Id},
+                Parameters = new[] { clientCallParams.ServiceName, clientCallParams.MethodName, jsonresponse.Id},
                 Properties = {
-                    {"service", service},
-                    {"method", method},
+                    {"service", clientCallParams.ServiceName},
+                    {"method", clientCallParams.MethodName},
                     {"RequestID", jsonresponse.Id},
                     {"Process", ProcessName}, 
                     {"CurrentIp", CurrentIp },
-                    {"proxy_type_name", proxyType.FullName },
+                    {"proxy_type_name", clientCallParams.ProxyType.FullName },
                     {"Status", jsonresponse.Error != null ? "fail" : "ok"}
                 }
             });

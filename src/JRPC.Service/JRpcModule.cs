@@ -58,6 +58,13 @@ namespace JRPC.Service {
 
                     if (string.IsNullOrEmpty(clientIp)) {
                         clientIp = GetClientIpFromForwardedHeaders(headers, clientIp);
+                        if (string.IsNullOrEmpty(clientIp)) {
+                            clientIp = "Unknown";
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(clientProcessName)) {
+                        clientProcessName = "Unknown";
                     }
 
                     if (request == null) {
@@ -76,22 +83,6 @@ namespace JRPC.Service {
                     if (string.IsNullOrEmpty(proxyName)) {
                         _methodNameToInterfaceName.TryGetValue(methodName, out proxyName);
                     }
-                    _logger.Log(new LogEventInfo {
-                        Level = LogLevel.Debug,
-                        LoggerName = _logger.Name,
-                        Message = "Request for {0}.{1} with ID {2} received.",
-                        Parameters = new[] {ModuleName, request.Method, request.Id},
-                        Properties = {
-                            {"service", ModuleName}, 
-                            {"method", request.Method}, 
-                            {"RequestID", request.Id}, 
-                            {"RequestClientIp", clientIp}, 
-                            {"RequestProcessName", clientProcessName}, 
-                            {"Ip", address},
-                            {"Port", port}, 
-                            {"proxy_name", proxyName}
-                        }
-                    });
 
                     if (_logger.IsTraceEnabled) {
                         _logger.Trace("Processing request. Service [{0}]. Method {1}", ModuleName, request.Method);
@@ -116,7 +107,7 @@ namespace JRPC.Service {
                             Properties = {
                                 {"service", ModuleName}, 
                                 {"method", request.Method}, 
-                                {"RequestID", request.Id},
+                                {"RequestId", request.Id},
                                 {"RequestClientIp", clientIp}, 
                                 {"RequestProcessName", clientProcessName}, 
                                 {"Ip", address},
