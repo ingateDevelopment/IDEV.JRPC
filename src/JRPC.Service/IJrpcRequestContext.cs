@@ -71,5 +71,9 @@ namespace JRPC.Service
         /// to represent an empty request body.
         /// </summary>
         Stream Body { get; set; }
+        /// <summary>
+        /// Remote request ip address
+        /// </summary>
+        string RemoteIpAddress{ get; }
     }
 }

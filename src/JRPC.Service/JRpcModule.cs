@@ -55,12 +55,8 @@ namespace JRPC.Service {
                     var clientProcessName = GetValueFromHeader(JRpcHeaders.CLIENT_PROCESS_NAME_HEADER_NAME, headers);
                     var proxyName = GetValueFromHeader(JRpcHeaders.CLIENT_PROXY_INTERFACE_NAME, headers);
 
-
                     if (string.IsNullOrEmpty(clientIp)) {
-                        clientIp = GetClientIpFromForwardedHeaders(headers, clientIp);
-                        if (string.IsNullOrEmpty(clientIp)) {
-                            clientIp = "Unknown";
-                        }
+                        clientIp = context.JrpcRequestContext.RemoteIpAddress ?? "Unknown";
                     }
 
                     if (string.IsNullOrEmpty(clientProcessName)) {
@@ -112,7 +108,8 @@ namespace JRPC.Service {
                                 {"RequestProcessName", clientProcessName}, 
                                 {"Ip", address},
                                 {"Port", port}, 
-                                {"proxy_name", proxyName}
+                                {"proxy_name", proxyName}, 
+                                {"Source", "server"}
                             }
                         };
                         try {
@@ -144,23 +141,6 @@ namespace JRPC.Service {
                 };
             }
         }
-
-        private string GetClientIpFromForwardedHeaders(IDictionary<string, string[]> headers, string clientIp) {
-            var forwardedHeaders = GetValueFromHeader("Forwarded", headers);
-            if (!string.IsNullOrEmpty(forwardedHeaders)) {
-                var forIpHeaders = forwardedHeaders
-                    .Split(new[] {"for="}, StringSplitOptions.RemoveEmptyEntries);
-
-                if (forIpHeaders != null && forIpHeaders.Length >= 2) {
-                    clientIp = forIpHeaders.Skip(1).First()
-                        .Split(new[] {",", ";"}, StringSplitOptions.RemoveEmptyEntries).First()
-                        .Replace("\"", string.Empty);
-                }
-            }
-
-            return clientIp;
-        }
-
         protected virtual IList<JsonConverter> JsonConverters => new JsonConverter[0];
 
         protected virtual JsonSerializerSettings GetSerializerSettings() {

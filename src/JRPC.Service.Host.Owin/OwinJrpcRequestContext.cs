@@ -55,5 +55,9 @@ namespace JRPC.Service.Host.Owin {
             get => _request.Body;
             set => _request.Body = value;
         }
+
+        public string RemoteIpAddress{
+            get => _request.RemoteIpAddress;
+        }
     }
 }

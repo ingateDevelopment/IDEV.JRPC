@@ -47,7 +47,7 @@ namespace JRPC.Client {
         }
 
         public async Task<TResult> Call<TResult>(JrpcClientCallParams clientCallParams) {
-            return await InvokeRequest<TResult>(clientCallParams);
+            return await InvokeRequest<TResult>(clientCallParams).ConfigureAwait(false);
         }
 
         public T GetProxy<T>(string taskName) where T : class {
@@ -81,7 +81,7 @@ namespace JRPC.Client {
             };
 
             _logger.Log(new LogEventInfo {
-                Level = LogLevel.Debug,
+                Level = LogLevel.Trace,
                 LoggerName = _logger.Name,
                 Message = "Request for {0}.{1} with ID {2} sent.",
                 Parameters = new object[] {clientCallParams.ServiceName, clientCallParams.MethodName, id},
@@ -89,14 +89,15 @@ namespace JRPC.Client {
                     {"service", clientCallParams.ServiceName},
                     {"method", clientCallParams.MethodName},
                     {"RequestID", id},
-                    {"Process", ProcessName}, 
-                    {"CurrentIp", CurrentIp }, 
-                    {"proxy_type_name", clientCallParams.ProxyType.FullName }
+                    {"Process", ProcessName},
+                    {"CurrentIp", CurrentIp},
+                    {"proxy_type_name", clientCallParams.ProxyType.FullName}
                 }
             });
 
-            var jsonresponse = await HttpAsyncRequest<T>(METHOD, "application/json", GetEndPoint(clientCallParams.ServiceName), request,
-                _timeout, clientCallParams.Credentials, clientCallParams.ProxyType);
+            var jsonresponse = await HttpAsyncRequest<T>(METHOD, "application/json",
+                GetEndPoint(clientCallParams.ServiceName), request,
+                _timeout, clientCallParams.Credentials, clientCallParams.ProxyType).ConfigureAwait(false);
 
             _logger.Log(new LogEventInfo {
                 Level = LogLevel.Debug,
@@ -110,7 +111,8 @@ namespace JRPC.Client {
                     {"Process", ProcessName}, 
                     {"CurrentIp", CurrentIp },
                     {"proxy_type_name", clientCallParams.ProxyType.FullName },
-                    {"Status", jsonresponse.Error != null ? "fail" : "ok"}
+                    {"Status", jsonresponse.Error != null ? "fail" : "ok"},
+                    {"Source", "client"}
                 }
             });
 

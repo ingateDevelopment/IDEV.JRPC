@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Primitives;
@@ -8,9 +9,11 @@ using Microsoft.Extensions.Primitives;
 namespace JRPC.Service.Host.Kestrel {
     public class KestrelJrpcRequestContext : IJrpcRequestContext {
         private readonly IHttpRequestFeature _requestFeature;
+        private readonly IHttpConnectionFeature _httpConnectionFeature;
 
-        public KestrelJrpcRequestContext(IHttpRequestFeature requestFeature) {
+        public KestrelJrpcRequestContext(IHttpRequestFeature requestFeature, IHttpConnectionFeature httpConnectionFeature) {
             _requestFeature = requestFeature;
+            _httpConnectionFeature = httpConnectionFeature;
         }
 
 
@@ -60,6 +63,10 @@ namespace JRPC.Service.Host.Kestrel {
         public Stream Body{
             get => _requestFeature.Body;
             set => _requestFeature.Body = value;
+        }
+
+        public string RemoteIpAddress{
+            get => _httpConnectionFeature.RemoteIpAddress.ToString();
         }
     }
 }
