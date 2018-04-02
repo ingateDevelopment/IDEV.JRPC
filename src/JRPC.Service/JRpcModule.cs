@@ -45,15 +45,16 @@ namespace JRPC.Service {
             get {
                 return (context, address, port) => {
                     JRpcRequest request = null;
-                    
                     using (var reader = new JsonTextReader(new StreamReader(context.JrpcRequestContext.Body))) {
                         request = _jsonSerializer.Deserialize<JRpcRequest>(reader);
                     }
-
                     var headers = context?.JrpcRequestContext?.Headers;
                     var clientIp = GetValueFromHeader(JRpcHeaders.CLIENT_IP_HEADER_NAME, headers);
+                    var clientServiceName = GetValueFromHeader(JRpcHeaders.CLIENT_SERVICE_NAME, headers);
+                    var clientServiceProxyName = GetValueFromHeader(JRpcHeaders.CLIENT_SERVICE_PROXY_NAME, headers);
                     var clientProcessName = GetValueFromHeader(JRpcHeaders.CLIENT_PROCESS_NAME_HEADER_NAME, headers);
                     var proxyName = GetValueFromHeader(JRpcHeaders.CLIENT_PROXY_INTERFACE_NAME, headers);
+                    
 
                     if (string.IsNullOrEmpty(clientIp)) {
                         clientIp = context.JrpcRequestContext.RemoteIpAddress ?? "Unknown";
@@ -103,13 +104,15 @@ namespace JRPC.Service {
                             Properties = {
                                 {"service", ModuleName}, 
                                 {"method", request.Method}, 
-                                {"RequestId", request.Id},
-                                {"RequestClientIp", clientIp}, 
-                                {"RequestProcessName", clientProcessName}, 
-                                {"Ip", address},
-                                {"Port", port}, 
-                                {"proxy_name", proxyName}, 
-                                {"Source", "server"}
+                                {"requestId", request.Id},
+                                {"requestClientIp", clientIp}, 
+                                {"requestProcessName", clientProcessName}, 
+                                {"ip", address},
+                                {"port", port}, 
+                                {"proxyName", proxyName}, 
+                                {"source", "server"}, 
+                                {"requestServiceName",  clientServiceName}, 
+                                {"requestServiceProxyName", clientServiceProxyName }
                             }
                         };
                         try {
@@ -118,7 +121,7 @@ namespace JRPC.Service {
                                 Result = handle.Invoke(this, request.Params as JToken)
                             };
                             
-                            logEventInfo.Properties["Status"] = "ok";
+                            logEventInfo.Properties["status"] = "ok";
                             SerializeResponse(context.JrpcResponseContext, resp);
                         } catch (Exception ex) {
                             while (ex is AggregateException){
@@ -131,7 +134,7 @@ namespace JRPC.Service {
                                 Id = request.Id
                             };
                             _logger.Error("Error occurred during method invocation.", newEx);
-                            logEventInfo.Properties["Status"] = "fail";
+                            logEventInfo.Properties["status"] = "fail";
                             SerializeResponse(context.JrpcResponseContext, response);
                         }
                         _logger.Log(logEventInfo);
@@ -178,7 +181,7 @@ namespace JRPC.Service {
                 var methodInfo = duplicateMethod.ToList().First();
                 throw new JRpcException($"Method with name {methodInfo.Name} already exist in type {type}", ModuleInfo, methodInfo.Name);
             }
-            var methodInfos = interfaces.SelectMany(
+            List<IGrouping<string, MethodInfo>> methodInfos = interfaces.SelectMany(
                     i => i.GetMethods(BindingFlags.Public | BindingFlags.Instance)).ToList()
                 .GroupBy(t => t.Name.ToLower()).ToList();
 
@@ -204,6 +207,10 @@ namespace JRPC.Service {
                 var methodInfo = interfaceMethodInfo ?? method;
                 _handlers.Add(methodName, new MethodInvoker(methodInfo, serialiser));
                 _methodNameToInterfaceName.Add(methodName, methodInfo.DeclaringType.FullName);
+            }
+            if (_methodNameToInterfaceName != null) {
+                JrpcRegistredServices.AddService(ModuleName,
+                    new HashSet<string>(_methodNameToInterfaceName?.Values?.Distinct()));
             }
         }
 

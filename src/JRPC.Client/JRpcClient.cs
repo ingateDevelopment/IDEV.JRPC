@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -79,7 +80,11 @@ namespace JRPC.Client {
                 Method = clientCallParams.MethodName,    
                 Params = clientCallParams.ParametersStr,
             };
+            var serviceInfos = JrpcRegistredServices.GetAllInfo();
+            var currentServiceInfo = serviceInfos.FirstOrDefault();
 
+            var clientServiceName = currentServiceInfo.Key;
+            var clientServiceProxyName = currentServiceInfo.Value.FirstOrDefault();
             _logger.Log(new LogEventInfo {
                 Level = LogLevel.Trace,
                 LoggerName = _logger.Name,
@@ -88,16 +93,18 @@ namespace JRPC.Client {
                 Properties = {
                     {"service", clientCallParams.ServiceName},
                     {"method", clientCallParams.MethodName},
-                    {"RequestID", id},
-                    {"Process", ProcessName},
-                    {"CurrentIp", CurrentIp},
-                    {"proxy_type_name", clientCallParams.ProxyType.FullName}
+                    {"requestId", id},
+                    {"process", ProcessName},
+                    {"currentIp", CurrentIp},
+                    {"proxyTypeName", clientCallParams.ProxyType.FullName}, 
+                    {"currentServiceName", clientServiceName},
+                    {"currentProxyName", clientServiceProxyName}
                 }
             });
 
             var jsonresponse = await HttpAsyncRequest<T>(METHOD, "application/json",
                 GetEndPoint(clientCallParams.ServiceName), request,
-                _timeout, clientCallParams.Credentials, clientCallParams.ProxyType).ConfigureAwait(false);
+                _timeout, clientCallParams.Credentials, clientCallParams.ProxyType, clientServiceName, clientServiceProxyName).ConfigureAwait(false);
 
             _logger.Log(new LogEventInfo {
                 Level = LogLevel.Debug,
@@ -107,12 +114,14 @@ namespace JRPC.Client {
                 Properties = {
                     {"service", clientCallParams.ServiceName},
                     {"method", clientCallParams.MethodName},
-                    {"RequestID", jsonresponse.Id},
-                    {"Process", ProcessName}, 
-                    {"CurrentIp", CurrentIp },
-                    {"proxy_type_name", clientCallParams.ProxyType.FullName },
-                    {"Status", jsonresponse.Error != null ? "fail" : "ok"},
-                    {"Source", "client"}
+                    {"requestId", jsonresponse.Id},
+                    {"process", ProcessName}, 
+                    {"currentIp", CurrentIp },
+                    {"proxyTypeName", clientCallParams.ProxyType.FullName },
+                    {"status", jsonresponse.Error != null ? "fail" : "ok"},
+                    {"source", "client"}, 
+                    {"currentServiceName", clientServiceName},
+                    {"currentProxyName", clientServiceProxyName}
                 }
             });
 
@@ -129,7 +138,7 @@ namespace JRPC.Client {
         }
 
         /// <summary>
-        /// Копипаста AsyncTools HttpAsyncRequester.Request
+        /// Аснихронное выполнение jrpc запроса
         /// </summary>
         /// <param name="method"></param>
         /// <param name="contentType"></param>
@@ -137,9 +146,13 @@ namespace JRPC.Client {
         /// <param name="jRpcRequest"></param>
         /// <param name="timeout"></param>
         /// <param name="credentials"></param>
+        /// <param name="proxyType"></param>
+        /// <param name="clientServiceName"></param>
+        /// <param name="clientServiceProxyName"></param>
         /// <returns></returns>
         private async Task<JRpcResponse<T>> HttpAsyncRequest<T>(string method, string contentType, string url,
-            JRpcRequest jRpcRequest, TimeSpan timeout, IAbstractCredentials credentials, Type proxyType) {
+            JRpcRequest jRpcRequest, TimeSpan timeout, IAbstractCredentials credentials, Type proxyType,
+            string clientServiceName, string clientServiceProxyName) {
             var request = (HttpWebRequest) WebRequest.Create(url);
             if (request.ServicePoint.ConnectionLimit < 100) {
                 request.ServicePoint.ConnectionLimit = 100;
@@ -156,9 +169,20 @@ namespace JRPC.Client {
             if (credentials != null) {
                 request.Headers.Add(HttpRequestHeader.Authorization, credentials.GetHeaderValue());
             }
+
             request.Headers.Add(JRpcHeaders.CLIENT_IP_HEADER_NAME, CurrentIp);
             request.Headers.Add(JRpcHeaders.CLIENT_PROCESS_NAME_HEADER_NAME, ProcessName);
             request.Headers.Add(JRpcHeaders.CLIENT_PROXY_INTERFACE_NAME, proxyType.FullName);
+            if (!string.IsNullOrEmpty(clientServiceName)) {
+                request.Headers.Add(JRpcHeaders.CLIENT_SERVICE_NAME, clientServiceName);
+            }
+
+            if (!string.IsNullOrEmpty(clientServiceProxyName)) {
+                request.Headers.Add(JRpcHeaders.CLIENT_SERVICE_PROXY_NAME, clientServiceProxyName);
+            }
+
+
+
             var serializer = JsonSerializer.Create(_jsonSerializerSettings);
 
             if (jRpcRequest != null) {
@@ -174,13 +198,16 @@ namespace JRPC.Client {
                 response = (HttpWebResponse) await request.GetResponseAsync()
                     .WithTimeout(request.Timeout)
                     .ConfigureAwait(false);
-            } catch (WebException ex) {
+            }
+            catch (WebException ex) {
                 if (ex.Status == WebExceptionStatus.ProtocolError) {
                     response = (HttpWebResponse) ex.Response;
-                } else {
+                }
+                else {
                     response = null;
                 }
-            } catch (TimeoutException) {
+            }
+            catch (TimeoutException) {
                 _logger.Error("Timeout occurred during service invocation.");
                 response = null;
             }

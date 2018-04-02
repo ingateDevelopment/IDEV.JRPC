@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System.Runtime.InteropServices;
+using Newtonsoft.Json;
 
 namespace JRPC.Core {
     [JsonObject(MemberSerialization.OptIn)]

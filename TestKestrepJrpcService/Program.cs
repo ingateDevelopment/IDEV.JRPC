@@ -2,6 +2,7 @@
 using Consul;
 using JRPC.Service;
 using JRPC.Service.Host.Kestrel;
+using JRPC.Service.Host.Owin;
 using JRPC.Service.Registry;
 
 namespace TestKestrepJrpcService
@@ -18,10 +19,13 @@ namespace TestKestrepJrpcService
             Console.ReadLine();
         }
     }
-    
 
-    public class NewTestService : JRpcModule
-    {
+
+    public interface INewTestService {
+        string Test(int first, int second);
+    }
+
+    public class NewTestService : JRpcModule, INewTestService {
         public string Test(int first, int second)
         {
             return (first + second).ToString();
