@@ -83,8 +83,8 @@ namespace JRPC.Client {
             var serviceInfos = JrpcRegistredServices.GetAllInfo();
             var currentServiceInfo = serviceInfos.FirstOrDefault();
 
-            var clientServiceName = currentServiceInfo.Key;
-            var clientServiceProxyName = currentServiceInfo.Value.FirstOrDefault();
+            string clientServiceName = currentServiceInfo.Key;
+            string clientServiceProxyName = currentServiceInfo.Value?.FirstOrDefault();
             _logger.Log(new LogEventInfo {
                 Level = LogLevel.Trace,
                 LoggerName = _logger.Name,

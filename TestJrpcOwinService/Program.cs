@@ -1,6 +1,5 @@
 ﻿using System;
 using Consul;
-using Ingate.SystemAuthCookie.TransportTypes;
 using JRPC.Client;
 using JRPC.Registry.Ninject;
 using JRPC.Service;
@@ -16,30 +15,30 @@ namespace TestJrpcOwinService
     {
         public static void Main(string[] args) {
 
-//            var client = new JRpcClient();
-//
-//
-//            var proxy = client.GetProxy<INewTestService>("NewTestService");
-//
-//
-//            proxy.Test(100, 50);
-//
-//            Console.ReadLine();
+            var client = new JRpcClient();
 
-            
-            HostFactory.Run(c => {
-                c.UseNinject(new StatisticCommonServiceNinjectModule())
-                    .Service<JRpcService>(s => {
-                        s.ConstructUsingNinject();
-                        s.WhenStarted((service, control) => service.Start());
-                        s.WhenStopped((service, control) => service.Stop());
-                    });
-                c.RunAsNetworkService();
-                c.SetServiceName("StatisticCommonService");
-                c.SetDisplayName("StatisticCommonService");
-                c.SetDescription("StatisticCommonService for Ingate");
-            });
+
+            var proxy = client.GetProxy<INewTestService>("NewTestService");
+
+
+            proxy.Test(100, 50);
+
             Console.ReadLine();
+
+//            
+//            HostFactory.Run(c => {
+//                c.UseNinject(new StatisticCommonServiceNinjectModule())
+//                    .Service<JRpcService>(s => {
+//                        s.ConstructUsingNinject();
+//                        s.WhenStarted((service, control) => service.Start());
+//                        s.WhenStopped((service, control) => service.Stop());
+//                    });
+//                c.RunAsNetworkService();
+//                c.SetServiceName("StatisticCommonService");
+//                c.SetDisplayName("StatisticCommonService");
+//                c.SetDescription("StatisticCommonService for Ingate");
+//            });
+//            Console.ReadLine();
         }
         
         
