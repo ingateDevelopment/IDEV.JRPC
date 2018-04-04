@@ -101,11 +101,11 @@ namespace JRPC.Client {
                     {"currentProxyName", clientServiceProxyName}
                 }
             });
-
+            var watch = Stopwatch.StartNew();
             var jsonresponse = await HttpAsyncRequest<T>(METHOD, "application/json",
                 GetEndPoint(clientCallParams.ServiceName), request,
                 _timeout, clientCallParams.Credentials, clientCallParams.ProxyType, clientServiceName, clientServiceProxyName).ConfigureAwait(false);
-
+            var elaspedMs = watch.ElapsedMilliseconds;
             _logger.Log(new LogEventInfo {
                 Level = LogLevel.Debug,
                 LoggerName = _logger.Name,
@@ -121,7 +121,8 @@ namespace JRPC.Client {
                     {"status", jsonresponse.Error != null ? "fail" : "ok"},
                     {"source", "client"}, 
                     {"currentServiceName", clientServiceName},
-                    {"currentProxyName", clientServiceProxyName}
+                    {"currentProxyName", clientServiceProxyName}, 
+                    {"clientRequestTime", elaspedMs}
                 }
             });
 

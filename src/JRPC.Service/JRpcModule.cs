@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -85,6 +86,7 @@ namespace JRPC.Service {
                         _logger.Trace("Processing request. Service [{0}]. Method {1}", ModuleName, request.Method);
                     }
 
+                    var watch = Stopwatch.StartNew();
                     MethodInvoker handle;
                     var haveDelegate = _handlers.TryGetValue(methodName, out handle);
                     if (!haveDelegate || handle == null) {
@@ -120,10 +122,12 @@ namespace JRPC.Service {
                                 Id = request.Id,
                                 Result = handle.Invoke(this, request.Params as JToken)
                             };
-                            
+                            watch.Stop();
                             logEventInfo.Properties["status"] = "ok";
+                            logEventInfo.Properties["requestTime"] = watch.ElapsedMilliseconds;
                             SerializeResponse(context.JrpcResponseContext, resp);
                         } catch (Exception ex) {
+                            watch.Stop();
                             while (ex is AggregateException){
                                 ex = (ex as AggregateException).InnerException;
                             }
@@ -135,6 +139,7 @@ namespace JRPC.Service {
                             };
                             _logger.Error("Error occurred during method invocation.", newEx);
                             logEventInfo.Properties["status"] = "fail";
+                            logEventInfo.Properties["requestTime"] = watch.ElapsedMilliseconds;
                             SerializeResponse(context.JrpcResponseContext, response);
                         }
                         _logger.Log(logEventInfo);
