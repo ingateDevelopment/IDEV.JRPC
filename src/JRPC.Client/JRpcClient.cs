@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using JRPC.Client.Extensions;
 using JRPC.Core;
@@ -45,9 +47,8 @@ namespace JRPC.Client {
             _jsonSerializerSettings = jsonSerializerSettings;
         }
 
-        public async Task<TResult> Call<TResult>(string name, string method, Dictionary<string, object> parameters,
-            IAbstractCredentials credentials) {
-            return await InvokeRequest<TResult>(name, method, parameters, credentials);
+        public async Task<TResult> Call<TResult>(JrpcClientCallParams clientCallParams) {
+            return await InvokeRequest<TResult>(clientCallParams).ConfigureAwait(false);
         }
 
         public T GetProxy<T>(string taskName) where T : class {
@@ -66,46 +67,62 @@ namespace JRPC.Client {
         }
 
         private Lazy<string> _processName = new Lazy<string>(() => Process.GetCurrentProcess().ProcessName);
+        private Lazy<string> _currentIp = new Lazy<string>(() => Array.FindLast(Dns.GetHostEntry(string.Empty).AddressList, a => a.AddressFamily == AddressFamily.InterNetwork).ToString());
 
         private string ProcessName => _processName.Value;
+        private string CurrentIp => _currentIp.Value;
 
-        private async Task<T> InvokeRequest<T>(string service, string method, object data,
-            IAbstractCredentials credentials) {
+        private async Task<T> InvokeRequest<T>(JrpcClientCallParams clientCallParams) {
             var id = Guid.NewGuid().ToString();
 
             var request = new JRpcRequest {
                 Id = id,
-                Method = method,
-                Params = data,
+                Method = clientCallParams.MethodName,    
+                Params = clientCallParams.ParametersStr,
             };
+            var serviceInfos = JrpcRegistredServices.GetAllInfo();
+            var currentServiceInfo = serviceInfos.FirstOrDefault();
 
+            string clientServiceName = currentServiceInfo.Key;
+            string clientServiceProxyName = currentServiceInfo.Value?.FirstOrDefault();
             _logger.Log(new LogEventInfo {
-                Level = LogLevel.Debug,
+                Level = LogLevel.Trace,
                 LoggerName = _logger.Name,
                 Message = "Request for {0}.{1} with ID {2} sent.",
-                Parameters = new object[] {service, method, id},
+                Parameters = new object[] {clientCallParams.ServiceName, clientCallParams.MethodName, id},
                 Properties = {
-                    {"service", service},
-                    {"method", method},
-                    {"RequestID", id},
-                    {"Process", ProcessName}
+                    {"service", clientCallParams.ServiceName},
+                    {"method", clientCallParams.MethodName},
+                    {"requestId", id},
+                    {"process", ProcessName},
+                    {"currentIp", CurrentIp},
+                    {"proxyTypeName", clientCallParams.ProxyType.FullName}, 
+                    {"currentServiceName", clientServiceName},
+                    {"currentProxyName", clientServiceProxyName}
                 }
             });
-
-            var jsonresponse = await HttpAsyncRequest<T>(METHOD, "application/json", GetEndPoint(service), request,
-                _timeout,
-                credentials);
-
+            var watch = Stopwatch.StartNew();
+            var jsonresponse = await HttpAsyncRequest<T>(METHOD, "application/json",
+                GetEndPoint(clientCallParams.ServiceName), request,
+                _timeout, clientCallParams.Credentials, clientCallParams.ProxyType, clientServiceName, clientServiceProxyName).ConfigureAwait(false);
+            var elaspedMs = watch.ElapsedMilliseconds;
             _logger.Log(new LogEventInfo {
                 Level = LogLevel.Debug,
                 LoggerName = _logger.Name,
                 Message = "Response for {0}.{1} with ID {2} received.",
-                Parameters = new[] {service, method, jsonresponse.Id},
+                Parameters = new[] { clientCallParams.ServiceName, clientCallParams.MethodName, jsonresponse.Id},
                 Properties = {
-                    {"service", service},
-                    {"method", method},
-                    {"RequestID", jsonresponse.Id},
-                    {"Process", ProcessName}
+                    {"service", clientCallParams.ServiceName},
+                    {"method", clientCallParams.MethodName},
+                    {"requestId", jsonresponse.Id},
+                    {"process", ProcessName}, 
+                    {"currentIp", CurrentIp },
+                    {"proxyTypeName", clientCallParams.ProxyType.FullName },
+                    {"status", jsonresponse.Error != null ? "fail" : "ok"},
+                    {"source", "client"}, 
+                    {"currentServiceName", clientServiceName},
+                    {"currentProxyName", clientServiceProxyName}, 
+                    {"clientRequestTime", elaspedMs}
                 }
             });
 
@@ -122,7 +139,7 @@ namespace JRPC.Client {
         }
 
         /// <summary>
-        /// Копипаста AsyncTools HttpAsyncRequester.Request
+        /// Аснихронное выполнение jrpc запроса
         /// </summary>
         /// <param name="method"></param>
         /// <param name="contentType"></param>
@@ -130,9 +147,13 @@ namespace JRPC.Client {
         /// <param name="jRpcRequest"></param>
         /// <param name="timeout"></param>
         /// <param name="credentials"></param>
+        /// <param name="proxyType"></param>
+        /// <param name="clientServiceName"></param>
+        /// <param name="clientServiceProxyName"></param>
         /// <returns></returns>
         private async Task<JRpcResponse<T>> HttpAsyncRequest<T>(string method, string contentType, string url,
-            JRpcRequest jRpcRequest, TimeSpan timeout, IAbstractCredentials credentials) {
+            JRpcRequest jRpcRequest, TimeSpan timeout, IAbstractCredentials credentials, Type proxyType,
+            string clientServiceName, string clientServiceProxyName) {
             var request = (HttpWebRequest) WebRequest.Create(url);
             if (request.ServicePoint.ConnectionLimit < 100) {
                 request.ServicePoint.ConnectionLimit = 100;
@@ -150,6 +171,19 @@ namespace JRPC.Client {
                 request.Headers.Add(HttpRequestHeader.Authorization, credentials.GetHeaderValue());
             }
 
+            request.Headers.Add(JRpcHeaders.CLIENT_IP_HEADER_NAME, CurrentIp);
+            request.Headers.Add(JRpcHeaders.CLIENT_PROCESS_NAME_HEADER_NAME, ProcessName);
+            request.Headers.Add(JRpcHeaders.CLIENT_PROXY_INTERFACE_NAME, proxyType.FullName);
+            if (!string.IsNullOrEmpty(clientServiceName)) {
+                request.Headers.Add(JRpcHeaders.CLIENT_SERVICE_NAME, clientServiceName);
+            }
+
+            if (!string.IsNullOrEmpty(clientServiceProxyName)) {
+                request.Headers.Add(JRpcHeaders.CLIENT_SERVICE_PROXY_NAME, clientServiceProxyName);
+            }
+
+
+
             var serializer = JsonSerializer.Create(_jsonSerializerSettings);
 
             if (jRpcRequest != null) {
@@ -165,13 +199,16 @@ namespace JRPC.Client {
                 response = (HttpWebResponse) await request.GetResponseAsync()
                     .WithTimeout(request.Timeout)
                     .ConfigureAwait(false);
-            } catch (WebException ex) {
+            }
+            catch (WebException ex) {
                 if (ex.Status == WebExceptionStatus.ProtocolError) {
                     response = (HttpWebResponse) ex.Response;
-                } else {
+                }
+                else {
                     response = null;
                 }
-            } catch (TimeoutException) {
+            }
+            catch (TimeoutException) {
                 _logger.Error("Timeout occurred during service invocation.");
                 response = null;
             }

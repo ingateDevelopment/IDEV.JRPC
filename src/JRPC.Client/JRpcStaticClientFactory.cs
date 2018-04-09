@@ -14,12 +14,8 @@ namespace JRPC.Client {
         //NOTE: НЕ УДАЛЯТЬ, т.к. используется рефлексией
         public static object Invoke<TResult>(
             IJRpcClient client,
-            string taskName,
-            string methodName,
-            Dictionary<string, object> parametersStr,
-            JsonSerializerSettings jsonSerializerSettings,
-            IAbstractCredentials credentials) {
-            return client.Call<TResult>(taskName, methodName, parametersStr, credentials);
+            JrpcClientCallParams clientCallParams) {
+            return client.Call<TResult>(clientCallParams);
         }
 
         public static T Get<T>(IJRpcClient client, string taskName, string cacheKey, JsonSerializerSettings jsonSerializerSettings, IAbstractCredentials credentials) where T : class {

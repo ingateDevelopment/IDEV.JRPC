@@ -43,9 +43,6 @@ namespace JRPC.Tests {
                 throw;
             }
             
-            
-            
-            
             Assert.AreEqual(TestService.STRING, actual);
         }
         

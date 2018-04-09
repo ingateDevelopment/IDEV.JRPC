@@ -7,16 +7,16 @@ using Microsoft.AspNetCore.Owin;
 
 namespace JRPC.Service.Host.Kestrel {
     public class KestrelJRpcServerHost : IJrpcServerHost {
-        private IWebHost host;
+        private IWebHost _host;
 
         public void Dispose() {
-            host.StopAsync().Wait();
-            host?.Dispose();
+            _host.StopAsync().Wait();
+            _host?.Dispose();
         }
 
 
         public bool StartServerHost(string hostingUrl, Func<JrpcContext, Task> requestProcessor) {
-            host = new WebHostBuilder()
+            _host = new WebHostBuilder()
                 .UseKestrel()
                 .UseUrls(hostingUrl)
                 .Configure(app => {
@@ -25,7 +25,7 @@ namespace JRPC.Service.Host.Kestrel {
                     });
                 })
                 .Build();
-            host.RunAsync();
+            _host.RunAsync();
             return true;
         }
 
@@ -39,7 +39,7 @@ namespace JRPC.Service.Host.Kestrel {
             OwinFeatureCollection collection = new OwinFeatureCollection(environment);
 
             var context = new JrpcContext {
-                JrpcRequestContext = new KestrelJrpcRequestContext(collection),
+                JrpcRequestContext = new KestrelJrpcRequestContext(collection, collection),
                 JrpcResponseContext = new KestrelJrpcResponseContext(collection)
             };
             return context;

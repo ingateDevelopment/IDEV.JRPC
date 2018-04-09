@@ -34,6 +34,9 @@
     <Reference Include="Consul, Version=0.7.2.4, Culture=neutral, PublicKeyToken=20a6ad9a81df1d95">
       <HintPath>..\packages\Consul.0.7.2.4\lib\net45\Consul.dll</HintPath>
     </Reference>
+    <Reference Include="Ingate.SystemAuthCookie.TransportTypes, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\packages\Ingate.SystemAuthCookie.TransportTypes.1.0.3\lib\Ingate.SystemAuthCookie.TransportTypes.dll</HintPath>
+    </Reference>
     <Reference Include="Ninject, Version=3.3.4.0, Culture=neutral, PublicKeyToken=c7192dc5380945e7">
       <HintPath>..\packages\Ninject.3.3.4\lib\net45\Ninject.dll</HintPath>
     </Reference>
@@ -56,6 +59,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\src\JRPC.Client\JRPC.Client.csproj">
+      <Project>{23B84EED-1EE8-41AF-A447-34F4BE794B7F}</Project>
+      <Name>JRPC.Client</Name>
+    </ProjectReference>
     <ProjectReference Include="..\src\JRPC.Core\JRPC.Core.csproj">
       <Project>{2ab7b193-d553-45a9-bb9b-ef7528dca39b}</Project>
       <Name>JRPC.Core</Name>

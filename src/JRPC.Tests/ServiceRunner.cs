@@ -11,7 +11,7 @@ namespace Tests {
     public class ServiceRunner {
 
         private const string DEFAULT_IP_ADRESS = "localhost";
-        private const string DEFAULT_PORT = "8795";
+        private const string DEFAULT_PORT = "58795";
 
         public static Tuple<JRpcService, T> StartService<T>(string serviceName, JRpcModule jRpcModule, string ipAdress = null, string port = null) where T : class {
             if (string.IsNullOrEmpty(ipAdress)) {

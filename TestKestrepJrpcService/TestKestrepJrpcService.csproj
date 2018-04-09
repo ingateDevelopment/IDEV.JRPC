@@ -19,5 +19,12 @@
       <Project>{C9D75C43-2FA7-4FE5-A3EC-CADF259DE11E}</Project>
       <Name>JRPC.Service.Host.Kestrel</Name>
     </ProjectReference>
+    <ProjectReference Include="..\src\JRPC.Service.Host.Owin\JRPC.Service.Host.Owin.csproj">
+      <Project>{18C24CD0-BF60-4A48-875B-72172341E41F}</Project>
+      <Name>JRPC.Service.Host.Owin</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="NLog" Version="4.5.0-rc07" />
   </ItemGroup>
 </Project>
