@@ -4,30 +4,42 @@
 
 ## Requirements ##
 
-* dotnet 4.5.1
+* dotnet 4.5.1, dotnetstandard 2.0, dotnetcoreapp 2.0
 * Nlog >= 3.1.0
 * ConsulClient >= 0.7.2
 * Ninject >= 3.2.2 (optional: only for **JRPC.Registry.Ninject**)
-* Microsoft.Owin.Host.HttpListener >= 3.0.1
+* Microsoft.Owin.Host.HttpListener >= 3.0.1 (for owin hosting) 
+* Microsoft.AspNetCore.Server.Kestrel (for kestrel hosting)
 
 Also [Consul](https://www.consul.io) agent needed to work properly.
 
 ## Install ##
 
-To install IDEV.JRPC Service, run the following command in the Package Manager Console:
+To install JRPC Service, run the following command in the Package Manager Console:
 ```
 PM> Install-Package JRPC.Service
 ```
 
-To install IDEV.JRPC Client, run the following command in the Package Manager Console:
+To install JRPC Client, run the following command in the Package Manager Console:
 ```
 PM> Install-Package JRPC.Client
 ```
 
-To install IDEV.JRPC Ninject Registry, run the following command in the Package Manager Console:
+To install JRPC Ninject Registry, run the following command in the Package Manager Console:
 ```
 PM> Install-Package JRPC.Registry.Ninject
 ```
+
+To install JRPC Service Owin Hosting (using for dotnet45), run the following command in the Package Manager Console:
+```
+PM> Install-Package JRPC.Service.Host.Owin
+```
+
+To install JRPC Service Kestrel Hosting (using for dotnet46 (and higher), netstandard 2.0 and netcore 2.0), run the following command in the Package Manager Console:
+```
+PM> Install-Package JRPC.Service.Host.Kestrel
+```
+
 
 ## Usage ##
 
@@ -59,11 +71,27 @@ public class SomeService : JRpcModule, ISomeService {
 
 #### Basic Usage:
 
+##### for owin hosting
+
 ```csharp
 var consulClient = new ConsulClient();
 var registry = new DefaultModulesRegistry();
+var host = new OwinJrpcServer();
 registry.AddJRpcModule(new SomeService());
-var svc = new JRpcService(registry, consulClient);
+var svc = new JRpcService(registry, consulClient, host);
+svc.Start();
+Console.ReadLine();
+svc.Stop();
+```
+
+##### for kestrel hosting
+
+```csharp
+var consulClient = new ConsulClient();
+var registry = new DefaultModulesRegistry();
+var host = new KestrelJRpcServerHost();
+registry.AddJRpcModule(new SomeService());
+var svc = new JRpcService(registry, consulClient, host);
 svc.Start();
 Console.ReadLine();
 svc.Stop();
@@ -73,11 +101,37 @@ svc.Stop();
 
 Define Ninject module like this:
 
+##### for owin hosting
+
 ```csharp
 public class SomeNinjectModule : NinjectModule {
     public override void Load() {
         Bind<JRpcModule>().To<SomeService>();
         Bind<IModulesRegistry>().To<NinjectModulesRegistry>();
+        Bind<IJrpcServerHost>().To<OwinJrpcServer>();
+        Bind<IConsulClient>().To<ConsulClient>();
+        Bind<JRpcService>().ToSelf();
+    }
+}
+```
+
+```csharp
+var kernel = new StandardKernel();
+kernel.Load<SomeNinjectModule>();
+var svc = kernel.Get<JRpcService>();
+svc.Start();
+Console.ReadLine();
+svc.Stop();
+```
+
+##### for kestrel hosting
+
+```csharp
+public class SomeNinjectModule : NinjectModule {
+    public override void Load() {
+        Bind<JRpcModule>().To<SomeService>();
+        Bind<IModulesRegistry>().To<NinjectModulesRegistry>();
+        Bind<IJrpcServerHost>().To<KestrelJRpcServerHost>();
         Bind<IConsulClient>().To<ConsulClient>();
         Bind<JRpcService>().ToSelf();
     }
