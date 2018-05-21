@@ -159,6 +159,9 @@ namespace JRPC.Client {
                 request.ServicePoint.ConnectionLimit = 100;
             }
 
+            //TODO: Вынести настройку для включения proxy 
+            request.Proxy = null; 
+            
             request.Method = method;
             request.ContentType = contentType;
             request.KeepAlive = true;
